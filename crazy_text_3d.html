@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 3D Crazy Text Logo Generator 🔥</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .controls {
+            width: 380px;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(15px);
+            border-right: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1a2e, #0a0a0a);
+        }
+
+        #threejs-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 4s ease infinite;
+            font-size: 22px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes gradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .control-group h3 {
+            margin-bottom: 12px;
+            color: #4ecdc4;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+            padding-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #ccc;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 8px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 4px 20px rgba(78, 205, 196, 0.6);
+        }
+
+        .slider-value {
+            display: inline-block;
+            float: right;
+            background: rgba(78, 205, 196, 0.15);
+            color: #4ecdc4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.1);
+            accent-color: #4ecdc4;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .export-buttons button {
+            margin: 0;
+            padding: 6px;
+            font-size: 10px;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #4ecdc4;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            z-index: 100;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #4ecdc4;
+            font-size: 18px;
+            z-index: 200;
+        }
+
+        .spinner {
+            border: 3px solid rgba(78, 205, 196, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #4ecdc4;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .camera-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 10px;
+            color: #ccc;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        Loading Three.js...
+    </div>
+
+    <div class="container" style="display: none;" id="mainContainer">
+        <div class="controls">
+            <h1>🔥 3D Crazy Text Generator 🔥</h1>
+            
+            <div class="control-group">
+                <h3>📝 Text & Font</h3>
+                <label for="textInput">Text:</label>
+                <input type="text" id="textInput" value="CHAOS" placeholder="Enter text...">
+                
+                <label for="fontSize">Font Size: <span class="slider-value" id="fontSizeValue">100</span></label>
+                <input type="range" id="fontSize" min="20" max="200" value="100">
+                
+                <label for="curveSegments">Resolution: <span class="slider-value" id="curveSegmentsValue">12</span></label>
+                <input type="range" id="curveSegments" min="3" max="100" value="12">
+                
+                <label for="lineSpacing">Line Spacing: <span class="slider-value" id="lineSpacingValue">0.8</span></label>
+                <input type="range" id="lineSpacing" min="-0.5" max="2.0" step="0.1" value="0.8">
+                
+                <label for="textYPosition">Y Position: <span class="slider-value" id="textYPositionValue">0</span></label>
+                <input type="range" id="textYPosition" min="-200" max="200" value="0">
+                
+                <label for="textZPosition">Z Position: <span class="slider-value" id="textZPositionValue">0</span></label>
+                <input type="range" id="textZPosition" min="-200" max="200" value="0">
+            </div>
+
+            <div class="control-group">
+                <h3>🌊 Noise Warping</h3>
+                <label for="noiseScale">Noise Scale: <span class="slider-value" id="noiseScaleValue">0.05</span></label>
+                <input type="range" id="noiseScale" min="0.01" max="2.0" step="0.01" value="0.05">
+                
+                <label for="noiseStrength">Noise Strength: <span class="slider-value" id="noiseStrengthValue">15</span></label>
+                <input type="range" id="noiseStrength" min="0" max="80" value="15">
+            </div>
+
+            <div class="control-group">
+                <h3>🧲 Attractor Forces</h3>
+                <label for="attractorCount">Point Count: <span class="slider-value" id="attractorCountValue">5</span></label>
+                <input type="range" id="attractorCount" min="1" max="30" value="5">
+                
+                <label for="attractorStrength">Strength: <span class="slider-value" id="attractorStrengthValue">25</span></label>
+                <input type="range" id="attractorStrength" min="0" max="1000" value="25">
+                
+                <label for="falloffRadius">Falloff Radius: <span class="slider-value" id="falloffRadiusValue">80</span></label>
+                <input type="range" id="falloffRadius" min="20" max="200" value="80">
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showAttractors" checked>
+                    <label for="showAttractors">Show Attractors</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🔺 Voronoi Clipping</h3>
+                <label for="voronoiCount">Point Count: <span class="slider-value" id="voronoiCountValue">6</span></label>
+                <input type="range" id="voronoiCount" min="1" max="30" value="6">
+                
+                <label for="clipStrength">Clip Strength: <span class="slider-value" id="clipStrengthValue">12</span></label>
+                <input type="range" id="clipStrength" min="0" max="1000" value="12">
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showVoronoi">
+                    <label for="showVoronoi">Show Voronoi</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>📏 Thickness Variation</h3>
+                <label for="baseThickness">Base Thickness: <span class="slider-value" id="baseThicknessValue">1.2</span></label>
+                <input type="range" id="baseThickness" min="0.5" max="3" step="0.1" value="1.2">
+                
+                <label for="variationFactor">Variation: <span class="slider-value" id="variationFactorValue">0.4</span></label>
+                <input type="range" id="variationFactor" min="0" max="2" step="0.1" value="0.4">
+            </div>
+
+            <div class="control-group">
+                <h3>🌀 3D Extrusion</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableExtrude">
+                    <label for="enableExtrude">Enable 3D Extrusion</label>
+                </div>
+                
+                <label for="fontDepth">Base Depth: <span class="slider-value" id="fontDepthValue">20</span></label>
+                <input type="range" id="fontDepth" min="5" max="50" value="20">
+                
+                <label for="extrudeHeight">Additional Height: <span class="slider-value" id="extrudeHeightValue">50</span></label>
+                <input type="range" id="extrudeHeight" min="10" max="150" value="50">
+                
+                <label for="twistAngle">Twist Angle: <span class="slider-value" id="twistAngleValue">45</span></label>
+                <input type="range" id="twistAngle" min="0" max="360" value="45">
+                
+                <label for="taperFactor">Taper: <span class="slider-value" id="taperFactorValue">0.3</span></label>
+                <input type="range" id="taperFactor" min="0" max="1" step="0.1" value="0.3">
+            </div>
+
+            <div class="control-group">
+                <h3>🎛️ Master Controls</h3>
+                <label for="chaosFactor">🔥 CHAOS FACTOR: <span class="slider-value" id="chaosFactorValue">50</span></label>
+                <input type="range" id="chaosFactor" min="0" max="100" value="50">
+                
+                <label for="animationSpeed">Animation Speed: <span class="slider-value" id="animationSpeedValue">1</span></label>
+                <input type="range" id="animationSpeed" min="0" max="3" step="0.1" value="1">
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableAnimation" checked>
+                    <label for="enableAnimation">Animation</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Material & Lighting</h3>
+                <label for="materialType">Material:</label>
+                <select id="materialType" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; margin-bottom: 10px;">
+                    <option value="standard" style="background: #333; color: #fff;">Standard</option>
+                    <option value="phong" style="background: #333; color: #fff;">Phong</option>
+                    <option value="lambert" style="background: #333; color: #fff;">Lambert</option>
+                    <option value="wireframe" style="background: #333; color: #fff;">Wireframe</option>
+                    <option value="normal" style="background: #333; color: #fff;">Normal Map</option>
+                </select>
+                
+                <label for="colorMode">Color Mode:</label>
+                <select id="colorMode" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; margin-bottom: 10px;">
+                    <option value="rainbow" style="background: #333; color: #fff;">Rainbow</option>
+                    <option value="fire" style="background: #333; color: #fff;">Fire</option>
+                    <option value="ice" style="background: #333; color: #fff;">Ice</option>
+                    <option value="neon" style="background: #333; color: #fff;">Neon</option>
+                    <option value="gold" style="background: #333; color: #fff;">Gold</option>
+                    <option value="black" style="background: #333; color: #fff;">Black</option>
+                </select>
+                
+                <label for="backgroundColor">Background:</label>
+                <select id="backgroundColor" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; margin-bottom: 10px;">
+                    <option value="dark" style="background: #333; color: #fff;">Dark</option>
+                    <option value="black" style="background: #333; color: #fff;">Black</option>
+                    <option value="white" style="background: #333; color: #fff;">White</option>
+                    <option value="gray" style="background: #333; color: #fff;">Gray</option>
+                    <option value="blue" style="background: #333; color: #fff;">Blue</option>
+                    <option value="red" style="background: #333; color: #fff;">Red</option>
+                </select>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableGlow" checked>
+                    <label for="enableGlow">Glow Effect</label>
+                </div>
+            </div>
+
+            <button onclick="regeneratePoints()">🎲 Randomize Points</button>
+            <button onclick="resetCamera()">📷 Reset Camera</button>
+            <button onclick="resetToDefaults()">🔄 Reset All</button>
+            
+            <div class="export-buttons">
+                <button onclick="exportPNG()">🖼️ PNG</button>
+                <button onclick="exportAnimatedSVG()">🎬 SVG</button>
+                <button onclick="exportAnimatedGIF()">🎞️ GIF</button>
+                <button onclick="savePreset()">💾 Save</button>
+                <button onclick="loadPreset()">📂 Load</button>
+            </div>
+            
+        </div>
+
+        <div class="canvas-container">
+            <div id="threejs-container"></div>
+            
+            <div class="info-panel">
+                <div>FPS: <span id="fpsCounter">60</span></div>
+                <div>Vertices: <span id="vertexCounter">0</span></div>
+                <div>Faces: <span id="faceCounter">0</span></div>
+            </div>
+
+            <div class="camera-controls">
+                <div><strong>Camera Controls:</strong></div>
+                <div>• Click + Drag: Orbit around text</div>
+                <div>• Mouse Wheel: Zoom in/out</div>
+                <div>• Move mouse: Dynamic camera angle</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js and dependencies -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.155.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.155.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        
+        // Make THREE and loaders available globally
+        window.THREE = THREE;
+        window.FontLoader = FontLoader;
+        window.TextGeometry = TextGeometry;
+        
+        // Initialize the app once modules are loaded
+        window.initThreeJSApp = function() {
+            document.addEventListener('DOMContentLoaded', () => {
+                initApp();
+            });
+        };
+        
+        // Call initialization
+        window.initThreeJSApp();
+    </script>
+    <script>
+        // Simple mouse controls implementation (no OrbitControls dependency)
+        function createSimpleControls(camera, renderer) {
+            const controls = {
+                mouseX: 0,
+                mouseY: 0,
+                isMouseDown: false,
+                distance: 200,
+                update: function() {
+                    if (this.isMouseDown) {
+                        camera.position.x = Math.sin(this.mouseX * 0.01) * this.distance;
+                        camera.position.z = Math.cos(this.mouseX * 0.01) * this.distance;
+                        camera.position.y = this.mouseY * 0.5;
+                        camera.lookAt(0, 0, 0);
+                    }
+                }
+            };
+
+            const canvas = renderer.domElement;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                controls.isMouseDown = true;
+            });
+            
+            canvas.addEventListener('mouseup', (e) => {
+                controls.isMouseDown = false;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                controls.mouseX = (e.clientX - rect.left - rect.width / 2);
+                controls.mouseY = (e.clientY - rect.top - rect.height / 2);
+            });
+            
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                controls.distance += e.deltaY * 0.1;
+                controls.distance = Math.max(50, Math.min(500, controls.distance));
+            });
+
+            return controls;
+        }
+
+        // Initialize when page loads (handled by module script above)
+        // Global Three.js variables
+        let scene, camera, renderer, controls;
+        let textMeshes = []; // Array of individual letter meshes
+        let extrudedMeshes = []; // Array of individual extruded letter meshes
+        let attractorPoints = [];
+        let voronoiPoints = [];
+        let attractorSpheres = [];
+        let voronoiSpheres = [];
+        let font;
+        let animationTime = 0;
+        let animationId;
+        let originalVerticesPerLetter = []; // Array of vertex arrays, one per letter
+        
+        // Performance tracking
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let fps = 60;
+
+        // Initialize the 3D scene
+        async function initApp() {
+            try {
+                console.log('Initializing 3D scene...');
+                
+                // Set up Three.js scene
+                setupScene();
+                setupCamera();
+                setupRenderer();
+                setupControls();
+                setupLighting();
+                
+                console.log('Three.js scene setup complete');
+                
+                // Load font and create initial text
+                console.log('Loading font...');
+                await loadFont();
+                console.log('Font loaded, generating points...');
+                generateRandomPoints();
+                console.log('Creating text geometry...');
+                createTextGeometry();
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+                // Hide loading screen and show main container
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'flex';
+                
+                console.log('Initialization complete, starting animation...');
+                
+                // Small delay to ensure DOM is fully rendered, then force initial render
+                setTimeout(() => {
+                    onWindowResize();
+                    
+                    // Force render to make sure text appears immediately
+                    if (textMeshes.length > 0) {
+                        console.log('Text meshes found, rendering scene...');
+                        renderer.render(scene, camera);
+                    } else {
+                        console.warn('No text meshes found, retrying...');
+                        // Retry creating text geometry if it failed
+                        createTextGeometry();
+                        renderer.render(scene, camera);
+                    }
+                    
+                    // Start animation loop
+                    animate();
+                }, 50);
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loading').innerHTML = 
+                    `<div style="color: #ff6b6b;">Error loading 3D engine:<br>${error.message}</div>`;
+            }
+        }
+
+        function setupScene() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x0a0a0a, 200, 1000);
+            updateBackgroundColor(); // Now fog exists, so it can be updated
+        }
+
+        function updateBackgroundColor() {
+            const backgroundColor = document.getElementById('backgroundColor').value;
+            const colors = {
+                dark: 0x0a0a0a,
+                black: 0x000000,
+                white: 0xffffff,
+                gray: 0x808080,
+                blue: 0x001122,
+                red: 0x220011
+            };
+            
+            const bgColor = colors[backgroundColor] || 0x0a0a0a;
+            scene.background = new THREE.Color(bgColor);
+            
+            // Update fog color to match background (only if fog exists)
+            if (scene.fog) {
+                scene.fog.color = new THREE.Color(bgColor);
+            }
+        }
+
+        function setupCamera() {
+            const container = document.getElementById('threejs-container');
+            camera = new THREE.PerspectiveCamera(
+                75, 
+                container.clientWidth / container.clientHeight, 
+                0.1, 
+                2000
+            );
+            camera.position.set(0, 0, 200);
+        }
+
+        function setupRenderer() {
+            const container = document.getElementById('threejs-container');
+            
+            try {
+                renderer = new THREE.WebGLRenderer({ 
+                    antialias: true, 
+                    alpha: true,
+                    powerPreference: "high-performance",
+                    preserveDrawingBuffer: false, // Don't preserve buffer to save memory
+                    failIfMajorPerformanceCaveat: false // Allow fallback to software rendering
+                });
+                
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio to save GPU memory
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.outputEncoding = THREE.sRGBEncoding;
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.2;
+                
+                container.appendChild(renderer.domElement);
+                console.log('WebGL renderer created successfully');
+                
+            } catch (error) {
+                console.error('WebGL context creation failed:', error);
+                
+                // Try fallback renderer with minimal settings
+                try {
+                    renderer = new THREE.WebGLRenderer({ 
+                        antialias: false, 
+                        alpha: false,
+                        powerPreference: "default"
+                    });
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                    container.appendChild(renderer.domElement);
+                    console.log('Fallback WebGL renderer created');
+                } catch (fallbackError) {
+                    throw new Error('WebGL not supported or GPU memory exhausted. Try refreshing the page or closing other browser tabs.');
+                }
+            }
+        }
+
+        function setupControls() {
+            controls = createSimpleControls(camera, renderer);
+            console.log('Simple controls created');
+        }
+
+        function setupLighting() {
+            // Ambient light
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+
+            // Main directional light
+            const directionalLight = new THREE.DirectionalLight(0x4ecdc4, 1.2);
+            directionalLight.position.set(100, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Fill light
+            const fillLight = new THREE.DirectionalLight(0xff6b6b, 0.8);
+            fillLight.position.set(-100, -50, 100);
+            scene.add(fillLight);
+
+            // Rim light
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            rimLight.position.set(0, 50, -100);
+            scene.add(rimLight);
+
+            // Point lights for dynamic effects
+            const pointLight1 = new THREE.PointLight(0x4ecdc4, 1, 200);
+            pointLight1.position.set(50, 50, 50);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0xff6b6b, 1, 200);
+            pointLight2.position.set(-50, -50, 50);
+            scene.add(pointLight2);
+        }
+
+        async function loadFont() {
+    return new Promise((resolve, reject) => {
+        console.log('🎯 Loading Three.js font...');
+        const loader = new FontLoader();
+        
+        // Try multiple font sources for reliability
+        const fontUrls = [
+            'https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
+            'https://unpkg.com/three@0.155.0/examples/fonts/helvetiker_bold.typeface.json'
+        ];
+        
+        function tryLoadFont(index = 0) {
+            if (index >= fontUrls.length) {
+                console.warn('⚠️ All font sources failed, creating simple fallback');
+                createSimpleFallbackFont();
+                resolve();
+                return;
+            }
+            
+            loader.load(
+                fontUrls[index],
+                (loadedFont) => {
+                    font = loadedFont;
+                    console.log('✅ Font loaded successfully from:', fontUrls[index]);
+                    resolve();
+                },
+                (progress) => {
+                    console.log('📥 Loading progress:', progress);
+                },
+                (error) => {
+                    console.warn(`❌ Font loading failed from ${fontUrls[index]}:`, error);
+                    tryLoadFont(index + 1);
+                }
+            );
+        }
+        
+        tryLoadFont();
+    });
+}
+
+function createSimpleFallbackFont() {
+    console.log('🔧 Creating simple fallback font...');
+    font = {
+        generateShapes: function(text, size) {
+            const shapes = [];
+            const lines = text.split('\n');
+            const lineSpacing = parseFloat(document.getElementById('lineSpacing').value);
+            const lineHeight = size * lineSpacing; // User-controlled space between lines
+            
+            lines.forEach((line, lineIndex) => {
+                const chars = line.split('');
+                let offsetX = -(chars.length - 1) * size * 0.35; // Center each line
+                const offsetY = (lines.length - 1 - lineIndex) * lineHeight - (lines.length - 1) * lineHeight * 0.5; // Center vertically
+                
+                chars.forEach((char) => {
+                    if (char === ' ') {
+                        offsetX += size * 0.4;
+                        return;
+                    }
+                    
+                    // Create simple but recognizable shapes for each character
+                    const shape = new THREE.Shape();
+                    const w = size * 0.3;
+                    const h = size * 0.6;
+                    const t = size * 0.05; // thickness
+                
+                switch (char.toUpperCase()) {
+                    case 'C':
+                        // Simple C - no arcs, just lines
+                        shape.moveTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/2);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2 - t);
+                        shape.lineTo(offsetX - w/2 + t, offsetY + h/2 - t);
+                        shape.lineTo(offsetX - w/2 + t, offsetY - h/2 + t);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2 + t);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        break;
+                        
+                    case 'H':
+                        // H shape
+                        shape.moveTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX - w/2 + t, offsetY - h/2);
+                        shape.lineTo(offsetX - w/2 + t, offsetY - t/2);
+                        shape.lineTo(offsetX + w/2 - t, offsetY - t/2);
+                        shape.lineTo(offsetX + w/2 - t, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2);
+                        shape.lineTo(offsetX + w/2 - t, offsetY + h/2);
+                        shape.lineTo(offsetX + w/2 - t, offsetY + t/2);
+                        shape.lineTo(offsetX - w/2 + t, offsetY + t/2);
+                        shape.lineTo(offsetX - w/2 + t, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                        break;
+                        
+                    case 'A':
+                        // A shape - triangle with crossbar
+                        shape.moveTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX, offsetY + h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2 - t, offsetY - h/2);
+                        shape.lineTo(offsetX, offsetY + h/2 - t*2);
+                        shape.lineTo(offsetX + w/6, offsetY + h/6);
+                        shape.lineTo(offsetX - w/6, offsetY + h/6);
+                        shape.lineTo(offsetX, offsetY + h/2 - t*2);
+                        shape.lineTo(offsetX - w/2 + t, offsetY - h/2);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                        break;
+                        
+                    case 'O':
+                        // Simple O - rectangle with hole
+                        shape.moveTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                        
+                        // Add hole
+                        const hole = new THREE.Path();
+                        hole.moveTo(offsetX - w/2 + t, offsetY - h/2 + t);
+                        hole.lineTo(offsetX + w/2 - t, offsetY - h/2 + t);
+                        hole.lineTo(offsetX + w/2 - t, offsetY + h/2 - t);
+                        hole.lineTo(offsetX - w/2 + t, offsetY + h/2 - t);
+                        hole.lineTo(offsetX - w/2 + t, offsetY - h/2 + t);
+                        shape.holes.push(hole);
+                        break;
+                        
+                    case 'S':
+                        // Simple S
+                        shape.moveTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/6);
+                        shape.lineTo(offsetX - w/2 + t, offsetY - h/6);
+                        shape.lineTo(offsetX - w/2 + t, offsetY + h/6);
+                        shape.lineTo(offsetX + w/2, offsetY + h/6);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/6 + t);
+                        shape.lineTo(offsetX + w/2 - t, offsetY + h/6 + t);
+                        shape.lineTo(offsetX + w/2 - t, offsetY - h/6 - t);
+                        shape.lineTo(offsetX - w/2, offsetY - h/6 - t);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                        break;
+                        
+                    default:
+                        // Simple rectangle for unknown chars
+                        shape.moveTo(offsetX - w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY - h/2);
+                        shape.lineTo(offsetX + w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY + h/2);
+                        shape.lineTo(offsetX - w/2, offsetY - h/2);
+                }
+                
+                    shapes.push(shape);
+                    offsetX += size * 0.7;
+                });
+            });
+            
+            return shapes;
+        }
+    };
+}
+
+        function handleMultiLineText(text, fontSize, font) {
+            const lines = text.split('\n');
+            const lineSpacing = parseFloat(document.getElementById('lineSpacing').value);
+            const lineHeight = fontSize * lineSpacing;
+            const allShapes = [];
+            
+            lines.forEach((line, lineIndex) => {
+                if (line.trim() === '') return; // Skip empty lines
+                
+                // Generate shapes for this line
+                const lineShapes = font.generateShapes(line, fontSize);
+                
+                // Calculate Y offset for this line
+                const offsetY = (lines.length - 1 - lineIndex) * lineHeight - (lines.length - 1) * lineHeight * 0.5;
+                
+                // Apply Y offset to each shape in this line
+                lineShapes.forEach(shape => {
+                    // Translate shape by offsetY
+                    const points = shape.getPoints();
+                    const translatedShape = new THREE.Shape();
+                    
+                    points.forEach((point, i) => {
+                        if (i === 0) {
+                            translatedShape.moveTo(point.x, point.y + offsetY);
+                        } else {
+                            translatedShape.lineTo(point.x, point.y + offsetY);
+                        }
+                    });
+                    
+                    // Handle holes if they exist
+                    if (shape.holes && shape.holes.length > 0) {
+                        shape.holes.forEach(hole => {
+                            const holePoints = hole.getPoints();
+                            const translatedHole = new THREE.Path();
+                            
+                            holePoints.forEach((point, i) => {
+                                if (i === 0) {
+                                    translatedHole.moveTo(point.x, point.y + offsetY);
+                                } else {
+                                    translatedHole.lineTo(point.x, point.y + offsetY);
+                                }
+                            });
+                            
+                            translatedShape.holes.push(translatedHole);
+                        });
+                    }
+                    
+                    allShapes.push(translatedShape);
+                });
+            });
+            
+            return allShapes;
+        }
+
+        function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth) {
+            // Create consistent polygon count for all characters based on resolution
+            const targetPolygons = Math.floor(resolution * 20); // 20 polygons per resolution unit
+            
+            console.log(`Character "${char}": Target ${targetPolygons} polygons`);
+            
+            try {
+                // Generate base shape from font
+                const charShapes = font.generateShapes(char, fontSize);
+                
+                if (charShapes && charShapes.length > 0) {
+                    // Start with minimal curve segments to get base shape
+                    const baseCurveSegments = 8; // Low base detail
+                    let charGeometry;
+                    
+                    if (enableExtrude) {
+                        charGeometry = new THREE.ExtrudeGeometry(charShapes, {
+                            depth: fontDepth,
+                            bevelEnabled: true,
+                            bevelThickness: 2,
+                            bevelSize: 1,
+                            bevelOffset: 0,
+                            bevelSegments: 2,
+                            curveSegments: baseCurveSegments
+                        });
+                    } else {
+                        charGeometry = new THREE.ShapeGeometry(charShapes, baseCurveSegments);
+                    }
+                    
+                    // Now subdivide to reach target polygon count
+                    let currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
+                    
+                    while (currentPolygons < targetPolygons && currentPolygons < 5000) {
+                        const projectedPolygons = currentPolygons * 4;
+                        
+                        if (projectedPolygons <= targetPolygons * 1.2) { // Allow 20% overshoot
+                            addGeometrySubdivision(charGeometry, 1);
+                            currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
+                            console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons`);
+                        } else {
+                            break; // Would overshoot too much
+                        }
+                    }
+                    
+                    console.log(`Character "${char}": Final ${currentPolygons} polygons (target: ${targetPolygons})`);
+                    return charGeometry;
+                    
+                } else {
+                    throw new Error('No shapes generated for character');
+                }
+                
+            } catch (error) {
+                console.warn(`Failed to create shape for "${char}", using fallback`);
+                // Fallback: create simple box with target polygon count
+                return createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth);
+            }
+        }
+
+        function createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth) {
+            // Create simple geometry and subdivide to target polygon count
+            let geometry;
+            if (enableExtrude) {
+                geometry = new THREE.BoxGeometry(fontSize * 0.6, fontSize, fontDepth);
+            } else {
+                geometry = new THREE.PlaneGeometry(fontSize * 0.6, fontSize);
+            }
+            
+            // Subdivide to reach target
+            let currentPolygons = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+            while (currentPolygons < targetPolygons && currentPolygons < 5000) {
+                if (currentPolygons * 4 <= targetPolygons * 1.2) {
+                    addGeometrySubdivision(geometry, 1);
+                    currentPolygons = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+                } else {
+                    break;
+                }
+            }
+            
+            console.log(`Fallback "${char}": ${currentPolygons} polygons`);
+            return geometry;
+        }
+
+        function calculateSmartCurveSegments(text, requestedSegments) {
+            // Process each character individually to determine optimal curve segments
+            const chars = text.replace(/\s/g, '').split(''); // Remove spaces, split into chars
+            const maxPolygonsPerChar = 500;
+            
+            // Define character complexity levels
+            const characterComplexity = {
+                // Very high complexity (lots of curves)
+                'O': 20, 'Q': 20, 'C': 18, 'G': 18, 'D': 16, 'P': 14, 'R': 14, 'B': 16, 'S': 15,
+                'o': 18, 'q': 18, 'c': 16, 'g': 16, 'd': 14, 'p': 12, 'r': 10, 'b': 14, 's': 13, 'e': 12, 'a': 10,
+                
+                // Numbers - varying complexity
+                '0': 18, '6': 16, '8': 18, '9': 16, '3': 14, '5': 12, '2': 10,  // Curved numbers
+                '1': 1, '7': 2, '4': 2,  // Mostly straight numbers
+                
+                // Medium complexity (some curves)
+                'U': 8, 'J': 6, 'V': 4, 'W': 4, 'Y': 4, 'Z': 4, 'A': 4, 'N': 4, 'M': 4,
+                'u': 6, 'j': 5, 'v': 3, 'w': 4, 'y': 4, 'z': 3, 'n': 3, 'm': 4,
+                
+                // Low complexity (mostly straight lines)
+                'I': 1, 'T': 1, 'L': 1, 'F': 2, 'E': 2, 'H': 1, 'K': 2, 'X': 2,
+                'i': 1, 't': 2, 'l': 1, 'f': 2, 'k': 2, 'x': 2, 'h': 1
+            };
+            
+            let totalComplexity = 0;
+            chars.forEach(char => {
+                totalComplexity += characterComplexity[char] || 3; // Default complexity for unknown chars
+            });
+            
+            // Calculate if we need to reduce curve segments
+            const estimatedPolygonsPerChar = (totalComplexity / chars.length) * requestedSegments * 5;
+            
+            if (estimatedPolygonsPerChar > maxPolygonsPerChar) {
+                const scaleFactor = maxPolygonsPerChar / estimatedPolygonsPerChar;
+                const adjustedSegments = Math.max(3, Math.floor(requestedSegments * scaleFactor));
+                
+                console.log(`Per-character analysis: "${text}" (complexity: ${totalComplexity}, avg: ${(totalComplexity/chars.length).toFixed(1)})`);
+                console.log(`Curve segments reduced from ${requestedSegments} to ${adjustedSegments} (estimated ${Math.round(estimatedPolygonsPerChar)} → ${Math.round(estimatedPolygonsPerChar * scaleFactor)} polygons per char)`);
+                
+                return adjustedSegments;
+            }
+            
+            console.log(`Per-character analysis OK: "${text}" (complexity: ${totalComplexity}, avg: ${(totalComplexity/chars.length).toFixed(1)}, ~${Math.round(estimatedPolygonsPerChar)} polygons per char)`);
+            return requestedSegments;
+        }
+
+        function addGeometrySubdivision(geometry, levels) {
+            // Simple triangle subdivision to add more vertices for distortion effects
+            console.log(`Adding ${levels} subdivision levels to geometry`);
+            
+            for (let level = 0; level < levels; level++) {
+                const vertices = geometry.attributes.position.array;
+                const indices = geometry.index ? geometry.index.array : null;
+                
+                // Calculate current polygon count
+                const currentPolygons = indices ? indices.length / 3 : vertices.length / 9;
+                const projectedPolygons = currentPolygons * 4;
+                
+                // Safety check - don't create too many polygons total
+                if (projectedPolygons > 50000) {
+                    console.log(`Subdivision stopped at level ${level}: would create ${projectedPolygons} polygons (max: 50000)`);
+                    break;
+                }
+                
+                if (indices) {
+                    // Subdivide indexed geometry
+                    const newVertices = [];
+                    const newIndices = [];
+                    let vertexIndex = 0;
+                    
+                    // Copy original vertices
+                    for (let i = 0; i < vertices.length; i += 3) {
+                        newVertices.push(vertices[i], vertices[i + 1], vertices[i + 2]);
+                    }
+                    vertexIndex = newVertices.length / 3;
+                    
+                    // Subdivide each triangle
+                    for (let i = 0; i < indices.length; i += 3) {
+                        const i1 = indices[i];
+                        const i2 = indices[i + 1];
+                        const i3 = indices[i + 2];
+                        
+                        // Get triangle vertices
+                        const v1 = [vertices[i1 * 3], vertices[i1 * 3 + 1], vertices[i1 * 3 + 2]];
+                        const v2 = [vertices[i2 * 3], vertices[i2 * 3 + 1], vertices[i2 * 3 + 2]];
+                        const v3 = [vertices[i3 * 3], vertices[i3 * 3 + 1], vertices[i3 * 3 + 2]];
+                        
+                        // Create midpoint vertices
+                        const m12 = [(v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2, (v1[2] + v2[2]) / 2];
+                        const m23 = [(v2[0] + v3[0]) / 2, (v2[1] + v3[1]) / 2, (v2[2] + v3[2]) / 2];
+                        const m31 = [(v3[0] + v1[0]) / 2, (v3[1] + v1[1]) / 2, (v3[2] + v1[2]) / 2];
+                        
+                        // Add midpoint vertices
+                        newVertices.push(...m12, ...m23, ...m31);
+                        const m12Index = vertexIndex++;
+                        const m23Index = vertexIndex++;
+                        const m31Index = vertexIndex++;
+                        
+                        // Create 4 new triangles from 1 original
+                        newIndices.push(i1, m12Index, m31Index);
+                        newIndices.push(m12Index, i2, m23Index);
+                        newIndices.push(m31Index, m23Index, i3);
+                        newIndices.push(m12Index, m23Index, m31Index);
+                    }
+                    
+                    // Update geometry
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(newVertices, 3));
+                    geometry.setIndex(newIndices);
+                } else {
+                    // For non-indexed geometry, subdivide triangles
+                    const newVertices = [];
+                    for (let i = 0; i < vertices.length; i += 9) { // Each triangle
+                        const v1 = [vertices[i], vertices[i + 1], vertices[i + 2]];
+                        const v2 = [vertices[i + 3], vertices[i + 4], vertices[i + 5]];
+                        const v3 = [vertices[i + 6], vertices[i + 7], vertices[i + 8]];
+                        
+                        // Create edge midpoints
+                        const m12 = [(v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2, (v1[2] + v2[2]) / 2];
+                        const m23 = [(v2[0] + v3[0]) / 2, (v2[1] + v3[1]) / 2, (v2[2] + v3[2]) / 2];
+                        const m31 = [(v3[0] + v1[0]) / 2, (v3[1] + v1[1]) / 2, (v3[2] + v1[2]) / 2];
+                        
+                        // Create 4 new triangles from 1 original
+                        newVertices.push(...v1, ...m12, ...m31);
+                        newVertices.push(...m12, ...v2, ...m23);
+                        newVertices.push(...m31, ...m23, ...v3);
+                        newVertices.push(...m12, ...m23, ...m31);
+                    }
+                    
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(newVertices, 3));
+                }
+                
+                geometry.computeVertexNormals();
+                
+                // Log subdivision progress
+                const finalPolygons = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+                console.log(`Subdivision level ${level + 1}: ${finalPolygons} polygons`);
+            }
+            
+            console.log(`Final geometry: ${geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3} polygons`);
+        }
+
+        function createTextGeometry() {
+            if (!font) return;
+
+            // Remove existing text meshes
+            textMeshes.forEach(mesh => {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            });
+            extrudedMeshes.forEach(mesh => {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+            });
+            textMeshes = [];
+            extrudedMeshes = [];
+            originalVerticesPerLetter = [];
+
+            // Create individual letter objects for better control
+            createIndividualLetterMeshes();
+        }
+
+        function createIndividualLetterMeshes() {
+            const rawText = document.getElementById('textInput').value || 'CHAOS';
+            const text = rawText.replace(/\/n/g, '\n');
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const fontDepth = parseInt(document.getElementById('fontDepth').value);
+            const baseSegments = parseInt(document.getElementById('curveSegments').value);
+            const enableExtrude = document.getElementById('enableExtrude').checked;
+            const textYPosition = parseFloat(document.getElementById('textYPosition').value);
+            const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+
+            // No more complexity scoring needed - each letter is independent!
+
+            try {
+                if (!font || !font.generateShapes) {
+                    throw new Error('Font not available');
+                }
+
+                // Process each character individually
+                const lines = text.split('\n');
+                const lineSpacing = parseFloat(document.getElementById('lineSpacing').value);
+                const lineHeight = fontSize * lineSpacing;
+                let letterIndex = 0;
+
+                lines.forEach((line, lineIndex) => {
+                    const chars = line.split('');
+                    
+                    // Calculate total line width for proper centering
+                    let totalLineWidth = 0;
+                    const charWidths = [];
+                    
+                    chars.forEach((char) => {
+                        if (char === ' ') {
+                            charWidths.push(fontSize * 0.4);
+                            totalLineWidth += fontSize * 0.4;
+                        } else {
+                            // Generate shape to get actual character width
+                            const charShapes = font.generateShapes(char, fontSize);
+                            let charWidth = fontSize * 0.6; // Default fallback width
+                            
+                            if (charShapes && charShapes.length > 0) {
+                                // Calculate actual character width from bounding box
+                                const tempGeometry = new THREE.ShapeGeometry(charShapes);
+                                tempGeometry.computeBoundingBox();
+                                if (tempGeometry.boundingBox) {
+                                    charWidth = tempGeometry.boundingBox.max.x - tempGeometry.boundingBox.min.x;
+                                    charWidth += fontSize * 0.1; // Add small spacing
+                                }
+                                tempGeometry.dispose(); // Clean up temporary geometry
+                            }
+                            
+                            charWidths.push(charWidth);
+                            totalLineWidth += charWidth;
+                        }
+                    });
+                    
+                    // Start positioning from left edge, centered
+                    let offsetX = -totalLineWidth / 2;
+                    const offsetY = (lines.length - 1 - lineIndex) * lineHeight - (lines.length - 1) * lineHeight * 0.5;
+
+                    chars.forEach((char, charIndex) => {
+                        if (char === ' ') {
+                            offsetX += charWidths[charIndex];
+                            return;
+                        }
+
+                        // Each letter gets the full resolution - no more artificial limiting!
+
+                        // Create consistent polygon-based geometry for this character
+                        let charGeometry = createPolygonBasedCharacterGeometry(char, fontSize, baseSegments, enableExtrude, fontDepth);
+
+                        if (charGeometry) {
+                            // Position the character at the correct X offset
+                            charGeometry.translate(offsetX, offsetY, 0);
+
+                            // Store original vertices for this character
+                            const vertices = charGeometry.attributes.position.array;
+                            const charOriginalVertices = [];
+                            for (let i = 0; i < vertices.length; i += 3) {
+                                charOriginalVertices.push({
+                                    x: vertices[i],
+                                    y: vertices[i + 1],
+                                    z: vertices[i + 2]
+                                });
+                            }
+                            originalVerticesPerLetter[letterIndex] = charOriginalVertices;
+
+                            // Create material and mesh
+                            const material = createMaterial();
+                            const charMesh = new THREE.Mesh(charGeometry, material);
+                            charMesh.castShadow = true;
+                            charMesh.receiveShadow = true;
+                            charMesh.position.y = textYPosition;
+                            charMesh.position.z = textZPosition;
+                            charMesh.userData = { character: char, letterIndex: letterIndex };
+
+                            scene.add(charMesh);
+                            textMeshes.push(charMesh);
+                            letterIndex++;
+                        }
+
+                        // Move to next character position
+                        offsetX += charWidths[charIndex];
+                    });
+                });
+
+                console.log(`Created ${textMeshes.length} individual letter meshes`);
+
+            } catch (error) {
+                console.error('Error creating individual letters:', error);
+                // Fallback to simple geometry
+                createFallbackGeometry();
+            }
+
+            updateStats();
+        }
+
+        function createFallbackGeometry() {
+            // Simple fallback when individual letter creation fails
+            const text = document.getElementById('textInput').value || 'CHAOS';
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const enableExtrude = document.getElementById('enableExtrude').checked;
+            const fontDepth = parseInt(document.getElementById('fontDepth').value);
+            
+            let fallbackGeometry;
+            if (enableExtrude) {
+                fallbackGeometry = new THREE.BoxGeometry(fontSize * text.length * 0.6, fontSize, fontDepth);
+            } else {
+                fallbackGeometry = new THREE.PlaneGeometry(fontSize * text.length * 0.6, fontSize);
+            }
+
+            const material = createMaterial();
+            const fallbackMesh = new THREE.Mesh(fallbackGeometry, material);
+            
+            const textYPosition = parseFloat(document.getElementById('textYPosition').value);
+            const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+            fallbackMesh.position.y = textYPosition;
+            fallbackMesh.position.z = textZPosition;
+            
+            scene.add(fallbackMesh);
+            textMeshes.push(fallbackMesh);
+            
+            console.log('Created fallback geometry');
+        }
+
+        function createMaterial() {
+            const materialType = document.getElementById('materialType').value;
+            const colorMode = document.getElementById('colorMode').value;
+            const enableGlow = document.getElementById('enableGlow').checked;
+            const enableExtrude = document.getElementById('enableExtrude').checked;
+
+            let color = getColorFromMode(colorMode);
+            let material;
+
+            switch (materialType) {
+                case 'phong':
+                    material = new THREE.MeshPhongMaterial({
+                        color: color,
+                        shininess: 100,
+                        specular: 0x4ecdc4,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
+                case 'lambert':
+                    material = new THREE.MeshLambertMaterial({ 
+                        color: color,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
+                case 'wireframe':
+                    material = new THREE.MeshBasicMaterial({
+                        color: color,
+                        wireframe: true,
+                        wireframeLinewidth: 2,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
+                case 'normal':
+                    material = new THREE.MeshNormalMaterial({
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
+                default:
+                    material = new THREE.MeshStandardMaterial({
+                        color: color,
+                        metalness: 0.3,
+                        roughness: 0.4,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+            }
+
+            if (enableGlow && materialType !== 'wireframe') {
+                // For black color mode, use a subtle white glow instead of black glow
+                if (colorMode === 'black') {
+                    material.emissive = new THREE.Color(0x222222); // Dark gray glow for black text
+                } else {
+                    material.emissive = new THREE.Color(color).multiplyScalar(0.2);
+                }
+            }
+
+            return material;
+        }
+
+        function getColorFromMode(mode) {
+            const colors = {
+                rainbow: 0x4ecdc4,
+                fire: 0xff6b6b,
+                ice: 0x45b7d1,
+                neon: 0x00ff88,
+                gold: 0xffd700,
+                black: 0x000000
+            };
+            
+            console.log('Color mode requested:', mode);
+            // Use hasOwnProperty to properly handle black (0x000000) which is falsy
+            const color = colors.hasOwnProperty(mode) ? colors[mode] : 0x4ecdc4;
+            console.log('Color returned:', color.toString(16));
+            return color;
+        }
+
+        function createExtrudedMesh() {
+            if (textMeshes.length === 0) return;
+
+            const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
+            const twistAngle = parseInt(document.getElementById('twistAngle').value);
+            const taperFactor = parseFloat(document.getElementById('taperFactor').value);
+
+            // Clone the original geometry
+            const extrudeGeometry = textMesh.geometry.clone();
+            
+            // Apply twisted extrusion effect
+            applyTwistedExtrusion(extrudeGeometry, extrudeHeight, twistAngle, taperFactor);
+
+            // Create extruded mesh
+            const extrudeMaterial = createMaterial();
+            extrudeMaterial.transparent = true;
+            extrudeMaterial.opacity = 0.8;
+
+            extrudedMesh = new THREE.Mesh(extrudeGeometry, extrudeMaterial);
+            
+            // Apply Y and Z position (relative to main text)
+            const textYPosition = parseFloat(document.getElementById('textYPosition').value);
+            const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+            extrudedMesh.position.y = textYPosition;
+            extrudedMesh.position.z = textZPosition - extrudeHeight / 2;
+            
+            extrudedMesh.castShadow = true;
+            extrudedMesh.receiveShadow = true;
+            scene.add(extrudedMesh);
+        }
+
+        function applyTwistedExtrusion(geometry, height, twistAngle, taperFactor) {
+            const vertices = geometry.attributes.position.array;
+            const newVertices = [];
+
+            // Get geometry bounds for centering
+            geometry.computeBoundingBox();
+            const centerX = (geometry.boundingBox.max.x + geometry.boundingBox.min.x) / 2;
+            const centerY = (geometry.boundingBox.max.y + geometry.boundingBox.min.y) / 2;
+
+            // Create twisted extrusion layers
+            const layers = 15;
+            for (let layer = 0; layer < layers; layer++) {
+                const layerHeight = (layer / (layers - 1)) * height;
+                const twistRadians = (twistAngle * Math.PI / 180) * (layerHeight / height);
+                const taper = 1.0 - taperFactor * (layerHeight / height);
+
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = vertices[i];
+                    const y = vertices[i + 1];
+                    const z = vertices[i + 2];
+
+                    // Translate to center for rotation
+                    const relativeX = x - centerX;
+                    const relativeY = y - centerY;
+
+                    // Apply twist rotation
+                    const cosTheta = Math.cos(twistRadians);
+                    const sinTheta = Math.sin(twistRadians);
+                    const newX = relativeX * cosTheta - relativeY * sinTheta;
+                    const newY = relativeX * sinTheta + relativeY * cosTheta;
+
+                    // Apply taper
+                    const finalX = centerX + newX * taper;
+                    const finalY = centerY + newY * taper;
+                    const finalZ = z + layerHeight;
+
+                    newVertices.push(finalX, finalY, finalZ);
+                }
+            }
+
+            // Update geometry with new vertices
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(newVertices, 3));
+            geometry.computeVertexNormals();
+        }
+
+        function generateRandomPoints() {
+            attractorPoints = [];
+            voronoiPoints = [];
+
+            // Clear existing visual points
+            attractorSpheres.forEach(sphere => scene.remove(sphere));
+            voronoiSpheres.forEach(sphere => scene.remove(sphere));
+            attractorSpheres = [];
+            voronoiSpheres = [];
+
+            // Generate attractor points based on slider value
+            const attractorCount = parseInt(document.getElementById('attractorCount').value);
+            for (let i = 0; i < attractorCount; i++) {
+                const point = {
+                    x: (Math.random() - 0.5) * 300,
+                    y: (Math.random() - 0.5) * 200,
+                    z: (Math.random() - 0.5) * 100
+                };
+                attractorPoints.push(point);
+
+                // Create visual sphere
+                const sphereGeometry = new THREE.SphereGeometry(4, 8, 6);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff6b6b,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.position.set(point.x, point.y, point.z);
+                attractorSpheres.push(sphere);
+                if (document.getElementById('showAttractors').checked) {
+                    scene.add(sphere);
+                }
+            }
+
+            // Generate voronoi points based on slider value
+            const voronoiCount = parseInt(document.getElementById('voronoiCount').value);
+            for (let i = 0; i < voronoiCount; i++) {
+                const point = {
+                    x: (Math.random() - 0.5) * 250,
+                    y: (Math.random() - 0.5) * 180,
+                    z: (Math.random() - 0.5) * 80
+                };
+                voronoiPoints.push(point);
+
+                // Create visual sphere
+                const sphereGeometry = new THREE.SphereGeometry(3, 8, 6);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x4ecdc4,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.position.set(point.x, point.y, point.z);
+                voronoiSpheres.push(sphere);
+                if (document.getElementById('showVoronoi').checked) {
+                    scene.add(sphere);
+                }
+            }
+        }
+
+        // Noise function (3D Perlin-like noise)
+        function noise3D(x, y, z) {
+            const noiseScale = parseFloat(document.getElementById('noiseScale').value);
+            const n = Math.floor(x * noiseScale) + Math.floor(y * noiseScale) * 57 + Math.floor(z * noiseScale) * 3251;
+            const scrambled = ((n << 13) ^ n);
+            return (1.0 - ((scrambled * (scrambled * scrambled * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+        }
+
+        function applyDistortions() {
+            if (!textMeshes.length || !originalVerticesPerLetter.length) return;
+
+            // Get distortion parameters once
+            const noiseStrength = parseFloat(document.getElementById('noiseStrength').value);
+            const attractorStrength = parseFloat(document.getElementById('attractorStrength').value);
+            const falloffRadius = parseFloat(document.getElementById('falloffRadius').value);
+            const clipStrength = parseFloat(document.getElementById('clipStrength').value);
+            const baseThickness = parseFloat(document.getElementById('baseThickness').value);
+            const variationFactor = parseFloat(document.getElementById('variationFactor').value);
+            const chaosFactor = parseFloat(document.getElementById('chaosFactor').value) / 100;
+            const time = animationTime * 0.1;
+
+            textMeshes.forEach((mesh, meshIndex) => {
+                if (!originalVerticesPerLetter[meshIndex]) return;
+                
+                const geometry = mesh.geometry;
+                const vertices = geometry.attributes.position.array;
+                const originalVertices = originalVerticesPerLetter[meshIndex];
+
+            // Apply distortions to each vertex
+            for (let i = 0; i < originalVertices.length; i++) {
+                const originalVertex = originalVertices[i];
+                let x = originalVertex.x;
+                let y = originalVertex.y;
+                let z = originalVertex.z;
+
+                // 1. Apply noise warping
+                const noiseX = noise3D(x + time * 50, y, z);
+                const noiseY = noise3D(x, y + time * 50, z);
+                const noiseZ = noise3D(x, y, z + time * 50);
+
+                x += noiseX * noiseStrength * chaosFactor;
+                y += noiseY * noiseStrength * chaosFactor;
+                z += noiseZ * noiseStrength * chaosFactor * 0.5;
+
+                // 2. Apply attractor distortion (convert to world space)
+                attractorPoints.forEach(attractor => {
+                    // Convert vertex position to world space
+                    const worldX = x + mesh.position.x;
+                    const worldY = y + mesh.position.y;
+                    const worldZ = z + mesh.position.z;
+                    
+                    const dx = attractor.x - worldX;
+                    const dy = attractor.y - worldY;
+                    const dz = attractor.z - worldZ;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance < falloffRadius && distance > 0) {
+                        const falloffFactor = 1.0 - (distance / falloffRadius);
+                        const force = falloffFactor * falloffFactor * attractorStrength * chaosFactor * 0.1;
+
+                        x += (dx / distance) * force;
+                        y += (dy / distance) * force;
+                        z += (dz / distance) * force * 0.5;
+                    }
+                });
+
+                // 3. Apply Voronoi clipping
+                let minDistance = Infinity;
+                let closestVoronoi = null;
+
+                voronoiPoints.forEach(vPoint => {
+                    // Convert vertex position to world space for voronoi calculation
+                    const worldX = x + mesh.position.x;
+                    const worldY = y + mesh.position.y;
+                    const worldZ = z + mesh.position.z;
+                    
+                    const distance = Math.sqrt((worldX - vPoint.x) ** 2 + (worldY - vPoint.y) ** 2 + (worldZ - vPoint.z) ** 2);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestVoronoi = vPoint;
+                    }
+                });
+
+                if (closestVoronoi && minDistance > 0) {
+                    const influence = Math.exp(-minDistance / (clipStrength * 10));
+                    
+                    // Convert vertex position to world space for force calculation
+                    const worldX = x + mesh.position.x;
+                    const worldY = y + mesh.position.y;
+                    const worldZ = z + mesh.position.z;
+                    
+                    const dx = closestVoronoi.x - worldX;
+                    const dy = closestVoronoi.y - worldY;
+                    const dz = closestVoronoi.z - worldZ;
+                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (distance > 0) {
+                        const forceX = (dx / distance) * clipStrength * influence * chaosFactor * 0.1;
+                        const forceY = (dy / distance) * clipStrength * influence * chaosFactor * 0.1;
+                        const forceZ = (dz / distance) * clipStrength * influence * chaosFactor * 0.05;
+
+                        x += forceX;
+                        y += forceY;
+                        z += forceZ;
+                    }
+                }
+
+                // 4. Apply thickness variation
+                if (variationFactor > 0) {
+                    // Use distance from center and noise to vary thickness
+                    const centerX = 0; // Assuming text is centered
+                    const centerY = 0;
+                    const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    
+                    // Create thickness variation based on position and noise
+                    const thicknessNoise = noise3D(x * 0.02, y * 0.02, time * 10);
+                    const positionFactor = Math.sin(distanceFromCenter * 0.01 + time) * 0.5 + 0.5;
+                    
+                    const thicknessMultiplier = baseThickness + (thicknessNoise + positionFactor - 1) * variationFactor;
+                    
+                    // Apply thickness variation mainly to Z coordinate and some to X,Y for organic feel
+                    const thicknessDelta = (thicknessMultiplier - 1) * 10;
+                    
+                    // For 2D curves, vary the position slightly to simulate thickness
+                    if (!document.getElementById('enableExtrude').checked) {
+                        // For 2D mode, create subtle position variations
+                        x += Math.sin(y * 0.1 + time) * thicknessDelta * 0.3;
+                        y += Math.cos(x * 0.1 + time) * thicknessDelta * 0.3;
+                    }
+                    
+                    // Always apply some Z variation for depth
+                    z += thicknessDelta * chaosFactor;
+                }
+
+                    // Update vertex position
+                    vertices[i * 3] = x;
+                    vertices[i * 3 + 1] = y;
+                    vertices[i * 3 + 2] = z;
+                }
+
+                // Mark geometry as needing update
+                geometry.attributes.position.needsUpdate = true;
+                geometry.computeVertexNormals();
+            });
+
+            // Update extruded meshes if they exist
+            if (extrudedMeshes.length > 0 && document.getElementById('enableExtrude').checked) {
+                // Recreate extruded meshes with new base geometry
+                extrudedMeshes.forEach(mesh => {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+                extrudedMeshes = [];
+                createExtrudedMeshes();
+            }
+        }
+
+        function setupEventListeners() {
+            // Text and geometry changes
+            document.getElementById('textInput').addEventListener('input', createTextGeometry);
+            document.getElementById('fontSize').addEventListener('input', createTextGeometry);
+            document.getElementById('fontDepth').addEventListener('input', createTextGeometry);
+            document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
+            document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
+            document.getElementById('textYPosition').addEventListener('input', updateTextPosition);
+            document.getElementById('textZPosition').addEventListener('input', updateTextPosition);
+
+            // Material changes
+            document.getElementById('materialType').addEventListener('change', updateMaterial);
+            document.getElementById('colorMode').addEventListener('change', updateMaterial);
+            document.getElementById('enableGlow').addEventListener('change', updateMaterial);
+            document.getElementById('backgroundColor').addEventListener('change', updateBackgroundColor);
+
+            // 3D extrusion controls
+            document.getElementById('extrudeHeight').addEventListener('input', updateExtrusion);
+            document.getElementById('twistAngle').addEventListener('input', updateExtrusion);
+            document.getElementById('taperFactor').addEventListener('input', updateExtrusion);
+            document.getElementById('enableExtrude').addEventListener('change', updateExtrusion);
+
+            // All sliders update display values
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+                            'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
+                            'extrudeHeight', 'twistAngle', 'taperFactor', 'chaosFactor', 'animationSpeed'];
+
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const valueDisplay = document.getElementById(id + 'Value');
+
+                slider.addEventListener('input', function() {
+                    valueDisplay.textContent = this.value;
+                });
+            });
+
+            // Point count sliders regenerate points when changed
+            document.getElementById('attractorCount').addEventListener('input', generateRandomPoints);
+            document.getElementById('voronoiCount').addEventListener('input', generateRandomPoints);
+
+            // Show/hide visual helpers
+            document.getElementById('showAttractors').addEventListener('change', function() {
+                attractorSpheres.forEach(sphere => {
+                    if (this.checked) {
+                        scene.add(sphere);
+                    } else {
+                        scene.remove(sphere);
+                    }
+                });
+            });
+
+            document.getElementById('showVoronoi').addEventListener('change', function() {
+                voronoiSpheres.forEach(sphere => {
+                    if (this.checked) {
+                        scene.add(sphere);
+                    } else {
+                        scene.remove(sphere);
+                    }
+                });
+            });
+
+            // Animation control
+            document.getElementById('enableAnimation').addEventListener('change', function() {
+                if (!this.checked) {
+                    animationTime = 0;
+                }
+            });
+
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function updateMaterial() {
+            console.log('updateMaterial called');
+            if (textMeshes.length > 0) {
+                console.log('Updating textMeshes materials');
+                textMeshes.forEach(mesh => {
+                    mesh.material.dispose();
+                    const newMaterial = createMaterial();
+                    mesh.material = newMaterial;
+                });
+                console.log('Updated materials for', textMeshes.length, 'letter meshes');
+            }
+            if (extrudedMeshes.length > 0) {
+                console.log('Updating extrudedMeshes materials');
+                extrudedMeshes.forEach(mesh => {
+                    mesh.material.dispose();
+                    const newMaterial = createMaterial();
+                    mesh.material = newMaterial;
+                    mesh.material.transparent = true;
+                    mesh.material.opacity = 0.8;
+                });
+            }
+        }
+
+        function updateTextPosition() {
+            const textYPosition = parseFloat(document.getElementById('textYPosition').value);
+            const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+            
+            // Update all text mesh positions
+            textMeshes.forEach(mesh => {
+                mesh.position.y = textYPosition;
+                mesh.position.z = textZPosition;
+            });
+            
+            // Update all extruded mesh positions
+            if (extrudedMeshes.length > 0) {
+                const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
+                extrudedMeshes.forEach(mesh => {
+                    mesh.position.y = textYPosition;
+                    mesh.position.z = textZPosition - extrudeHeight / 2;
+                });
+            }
+        }
+
+        function updateExtrusion() {
+            // Always clean up existing extruded mesh first
+            if (extrudedMesh) {
+                scene.remove(extrudedMesh);
+                extrudedMesh.geometry.dispose();
+                extrudedMesh.material.dispose();
+                extrudedMesh = null;
+            }
+            
+            // Create new extruded mesh if enabled
+            if (document.getElementById('enableExtrude').checked) {
+                createExtrudedMesh();
+            }
+        }
+
+        function updateStats() {
+            if (textMeshes.length > 0) {
+                let totalVertices = 0;
+                let totalFaces = 0;
+                
+                textMeshes.forEach(mesh => {
+                    const geometry = mesh.geometry;
+                    totalVertices += geometry.attributes.position.count;
+                    totalFaces += geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+                });
+                
+                document.getElementById('vertexCounter').textContent = totalVertices.toLocaleString();
+                document.getElementById('faceCounter').textContent = totalFaces.toLocaleString();
+            }
+        }
+
+        function animate(currentTime = 0) {
+            // Update animation time
+            if (document.getElementById('enableAnimation').checked) {
+                const speed = parseFloat(document.getElementById('animationSpeed').value);
+                animationTime += 0.016 * speed;
+            }
+
+            // Apply distortions
+            applyDistortions();
+
+            // Update controls
+            controls.update();
+
+            // Render scene
+            renderer.render(scene, camera);
+
+            // Calculate FPS
+            if (currentTime - lastFrameTime >= 1000) {
+                fps = Math.round(frameCount * 1000 / (currentTime - lastFrameTime));
+                document.getElementById('fpsCounter').textContent = fps;
+                frameCount = 0;
+                lastFrameTime = currentTime;
+            }
+            frameCount++;
+
+            // Continue animation loop
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('threejs-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Utility functions
+        function regeneratePoints() {
+            generateRandomPoints();
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 0, 200);
+            controls.reset();
+        }
+
+        function resetToDefaults() {
+            // Reset all controls to default values
+            document.getElementById('textInput').value = 'CHAOS';
+            document.getElementById('fontSize').value = 100;
+            document.getElementById('fontDepth').value = 20;
+            document.getElementById('curveSegments').value = 12;
+            document.getElementById('lineSpacing').value = 0.8;
+            document.getElementById('textYPosition').value = 0;
+            document.getElementById('textZPosition').value = 0;
+            document.getElementById('noiseScale').value = 0.05;
+            document.getElementById('noiseStrength').value = 15;
+            document.getElementById('attractorCount').value = 5;
+            document.getElementById('attractorStrength').value = 25;
+            document.getElementById('falloffRadius').value = 80;
+            document.getElementById('voronoiCount').value = 6;
+            document.getElementById('clipStrength').value = 12;
+            document.getElementById('baseThickness').value = 1.2;
+            document.getElementById('variationFactor').value = 0.4;
+            document.getElementById('extrudeHeight').value = 50;
+            document.getElementById('twistAngle').value = 45;
+            document.getElementById('taperFactor').value = 0.3;
+            document.getElementById('chaosFactor').value = 50;
+            document.getElementById('animationSpeed').value = 1;
+            
+            // Reset checkboxes to default states
+            document.getElementById('enableExtrude').checked = false;
+            document.getElementById('enableAnimation').checked = true;
+            document.getElementById('showAttractors').checked = true;
+            document.getElementById('showVoronoi').checked = false;
+            document.getElementById('enableGlow').checked = true;
+            
+            // Reset dropdowns to default states
+            document.getElementById('materialType').value = 'standard';
+            document.getElementById('colorMode').value = 'rainbow';
+            document.getElementById('backgroundColor').value = 'dark';
+
+            // Update displays
+            updateSliderDisplays();
+
+            // Update visual elements
+            updateBackgroundColor();
+            
+            // Regenerate everything
+            generateRandomPoints();
+            createTextGeometry();
+            resetCamera();
+        }
+
+        function updateSliderDisplays() {
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+                            'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
+                            'extrudeHeight', 'twistAngle', 'taperFactor', 'chaosFactor', 'animationSpeed'];
+
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const valueDisplay = document.getElementById(id + 'Value');
+                valueDisplay.textContent = slider.value;
+            });
+        }
+
+        // Export functions (simplified - no external exporters needed)
+        function exportPNG() {
+            // Render at higher resolution for export
+            const originalWidth = renderer.domElement.width;
+            const originalHeight = renderer.domElement.height;
+            
+            // Temporarily increase resolution
+            renderer.setSize(1920, 1080);
+            renderer.render(scene, camera);
+            
+            // Export as PNG
+            const link = document.createElement('a');
+            link.download = 'crazy-text-3d.png';
+            link.href = renderer.domElement.toDataURL('image/png');
+            link.click();
+            
+            // Restore original resolution
+            renderer.setSize(originalWidth, originalHeight);
+        }
+
+        function exportSTL() {
+            alert('STL export requires additional modules. Use "Save as PNG" for now or check browser console for geometry data.');
+            if (textMesh) {
+                console.log('Text mesh geometry:', textMesh.geometry);
+                console.log('Vertices:', textMesh.geometry.attributes.position.array);
+            }
+        }
+
+        async function exportAnimatedSVG() {
+            if (textMeshes.length === 0) {
+                alert('No text to export!');
+                return;
+            }
+
+            console.log('🎬 Starting animated SVG export...');
+            
+            // Store current animation state
+            const wasAnimating = document.getElementById('enableAnimation').checked;
+            const originalTime = animationTime;
+            
+            // Temporarily disable animation during export
+            document.getElementById('enableAnimation').checked = false;
+            
+            const frames = 30; // Full quality animation frames
+            const animSpeed = parseFloat(document.getElementById('animationSpeed').value);
+            const duration = 3 / animSpeed; // Respect the animation speed setting
+            const svgFrames = [];
+            
+            // Progress indicator
+            const exportButton = document.querySelector('button[onclick="exportAnimatedSVG()"]');
+            const originalText = exportButton.textContent;
+            
+            try {
+                for (let frame = 0; frame < frames; frame++) {
+                    exportButton.textContent = `🎬 Exporting ${frame + 1}/${frames}`;
+                    
+                    // Set animation time for this frame (matching live animation timing)
+                    animationTime = (frame / frames) * Math.PI * 4 * animSpeed; // Respect animation speed
+                    
+                    // Apply distortions for this frame
+                    applyDistortions();
+                    
+                    // Convert all letter geometries to SVG paths
+                    const svgPath = convertAllLettersToSVGPath();
+                    svgFrames.push(svgPath);
+                    
+                    // Small delay to prevent browser freeze
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+                
+                // Create animated SVG
+                const animatedSVG = createAnimatedSVG(svgFrames, duration);
+                
+                // Download the SVG
+                const blob = new Blob([animatedSVG], { type: 'image/svg+xml' });
+                const link = document.createElement('a');
+                link.download = 'crazy-text-animated.svg';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                
+                console.log('🎉 Animated SVG export complete!');
+                
+            } catch (error) {
+                console.error('Error exporting animated SVG:', error);
+                alert('Error exporting animated SVG: ' + error.message);
+            } finally {
+                // Restore original state
+                document.getElementById('enableAnimation').checked = wasAnimating;
+                animationTime = originalTime;
+                exportButton.textContent = originalText;
+            }
+        }
+
+        function convertAllLettersToSVGPath() {
+            // Calculate global bounding box for all letters first
+            let globalMinX = Infinity, globalMinY = Infinity;
+            let globalMaxX = -Infinity, globalMaxY = -Infinity;
+            
+            textMeshes.forEach(mesh => {
+                mesh.geometry.computeBoundingBox();
+                const bbox = mesh.geometry.boundingBox;
+                if (bbox) {
+                    globalMinX = Math.min(globalMinX, bbox.min.x);
+                    globalMinY = Math.min(globalMinY, bbox.min.y);
+                    globalMaxX = Math.max(globalMaxX, bbox.max.x);
+                    globalMaxY = Math.max(globalMaxY, bbox.max.y);
+                }
+            });
+            
+            const globalWidth = globalMaxX - globalMinX;
+            const globalHeight = globalMaxY - globalMinY;
+            const scale = 500 / Math.max(globalWidth, globalHeight);
+            
+            // Convert each letter to SVG path with global scaling
+            let combinedPath = '';
+            
+            textMeshes.forEach((mesh, index) => {
+                const letterPath = geometryToSVGPathWithGlobalScale(mesh.geometry, globalMinX, globalMinY, globalMaxY, scale);
+                combinedPath += letterPath + ' ';
+            });
+            
+            return combinedPath.trim();
+        }
+
+        function geometryToSVGPathWithGlobalScale(geometry, globalMinX, globalMinY, globalMaxY, scale) {
+            const vertices = geometry.attributes.position.array;
+            const indices = geometry.index ? geometry.index.array : null;
+            
+            // Helper function to round coordinates to 3 decimal places
+            const r = (n) => Math.round(n * 1000) / 1000;
+            
+            let path = '';
+            
+            if (indices) {
+                // Indexed geometry - draw all triangles at full quality
+                for (let i = 0; i < indices.length; i += 3) {
+                    const i1 = indices[i] * 3;
+                    const i2 = indices[i + 1] * 3;
+                    const i3 = indices[i + 2] * 3;
+                    
+                    const x1 = r((vertices[i1] - globalMinX) * scale);
+                    const y1 = r((globalMaxY - vertices[i1 + 1]) * scale); // Flip Y
+                    const x2 = r((vertices[i2] - globalMinX) * scale);
+                    const y2 = r((globalMaxY - vertices[i2 + 1]) * scale);
+                    const x3 = r((vertices[i3] - globalMinX) * scale);
+                    const y3 = r((globalMaxY - vertices[i3 + 1]) * scale);
+                    
+                    path += `M${x1},${y1} L${x2},${y2} L${x3},${y3} Z `;
+                }
+            } else {
+                // Non-indexed geometry - draw all triangles at full quality
+                for (let i = 0; i < vertices.length; i += 9) { // 3 vertices per triangle
+                    const x1 = r((vertices[i] - globalMinX) * scale);
+                    const y1 = r((globalMaxY - vertices[i + 1]) * scale);
+                    const x2 = r((vertices[i + 3] - globalMinX) * scale);
+                    const y2 = r((globalMaxY - vertices[i + 4]) * scale);
+                    const x3 = r((vertices[i + 6] - globalMinX) * scale);
+                    const y3 = r((globalMaxY - vertices[i + 7]) * scale);
+                    
+                    path += `M${x1},${y1} L${x2},${y2} L${x3},${y3} Z `;
+                }
+            }
+            
+            return path.trim();
+        }
+
+        function geometryToSVGPath(geometry) {
+            const vertices = geometry.attributes.position.array;
+            const indices = geometry.index ? geometry.index.array : null;
+            
+            // Get bounding box for scaling
+            geometry.computeBoundingBox();
+            const bbox = geometry.boundingBox;
+            const width = bbox.max.x - bbox.min.x;
+            const height = bbox.max.y - bbox.min.y;
+            const scale = 500 / Math.max(width, height); // Scale to fit in 500px
+            
+            // Helper function to round coordinates to 3 decimal places
+            const r = (n) => Math.round(n * 1000) / 1000;
+            
+            let path = '';
+            
+            if (indices) {
+                // Indexed geometry - draw all triangles at full quality
+                for (let i = 0; i < indices.length; i += 3) {
+                    const i1 = indices[i] * 3;
+                    const i2 = indices[i + 1] * 3;
+                    const i3 = indices[i + 2] * 3;
+                    
+                    const x1 = r((vertices[i1] - bbox.min.x) * scale);
+                    const y1 = r((bbox.max.y - vertices[i1 + 1]) * scale); // Flip Y
+                    const x2 = r((vertices[i2] - bbox.min.x) * scale);
+                    const y2 = r((bbox.max.y - vertices[i2 + 1]) * scale);
+                    const x3 = r((vertices[i3] - bbox.min.x) * scale);
+                    const y3 = r((bbox.max.y - vertices[i3 + 1]) * scale);
+                    
+                    path += `M${x1},${y1} L${x2},${y2} L${x3},${y3} Z `;
+                }
+            } else {
+                // Non-indexed geometry - draw all triangles at full quality
+                for (let i = 0; i < vertices.length; i += 9) { // 3 vertices per triangle
+                    const x1 = r((vertices[i] - bbox.min.x) * scale);
+                    const y1 = r((bbox.max.y - vertices[i + 1]) * scale);
+                    const x2 = r((vertices[i + 3] - bbox.min.x) * scale);
+                    const y2 = r((bbox.max.y - vertices[i + 4]) * scale);
+                    const x3 = r((vertices[i + 6] - bbox.min.x) * scale);
+                    const y3 = r((bbox.max.y - vertices[i + 7]) * scale);
+                    
+                    path += `M${x1},${y1} L${x2},${y2} L${x3},${y3} Z `;
+                }
+            }
+            
+            return path.trim();
+        }
+
+        function createAnimatedSVG(frames, duration) {
+            const colorMode = document.getElementById('colorMode').value;
+            const backgroundColor = document.getElementById('backgroundColor').value;
+            
+            // Get colors
+            const textColor = getColorFromMode(colorMode);
+            const bgColors = {
+                dark: '#0a0a0a',
+                black: '#000000',
+                white: '#ffffff',
+                gray: '#808080',
+                blue: '#001122',
+                red: '#220011'
+            };
+            const bgColor = bgColors[backgroundColor] || '#0a0a0a';
+            const textColorHex = '#' + textColor.toString(16).padStart(6, '0');
+            
+            // Create compact SVG structure
+            let svg = `<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="${bgColor}"/><path fill="${textColorHex}"><animate attributeName="d" values="${frames.join(';')}" dur="${duration}s" repeatCount="indefinite"/></path></svg>`;
+
+            return svg;
+        }
+
+        async function exportAnimatedGIF() {
+            if (textMeshes.length === 0) {
+                alert('No text to export!');
+                return;
+            }
+
+            console.log('🎞️ Starting animated GIF export...');
+            
+            // Store current animation state
+            const wasAnimating = document.getElementById('enableAnimation').checked;
+            const originalTime = animationTime;
+            
+            // Temporarily disable animation during export
+            document.getElementById('enableAnimation').checked = false;
+            
+            const frames = 30; // Number of animation frames
+            const animSpeed = parseFloat(document.getElementById('animationSpeed').value);
+            const frameDelay = Math.round(150 / animSpeed); // Delay in ms (150ms base / speed)
+            
+            // Progress indicator
+            const exportButton = document.querySelector('button[onclick="exportAnimatedGIF()"]');
+            const originalText = exportButton.textContent;
+            
+            try {
+                exportButton.textContent = '🎞️ Capturing...';
+                
+                const frameImages = [];
+                
+                // Store original canvas size and camera settings
+                const container = document.getElementById('threejs-container');
+                const originalWidth = container.clientWidth;
+                const originalHeight = container.clientHeight;
+                
+                // Store complete camera state
+                const originalCameraState = {
+                    position: camera.position.clone(),
+                    zoom: camera.zoom,
+                    aspect: camera.aspect,
+                    fov: camera.fov,
+                    near: camera.near,
+                    far: camera.far
+                };
+                
+                // Store controls state completely
+                const originalControlsState = controls ? {
+                    distance: controls.distance,
+                    mouseX: controls.mouseX,
+                    mouseY: controls.mouseY,
+                    isMouseDown: controls.isMouseDown
+                } : null;
+                
+                // Smart text-aware framing
+                if (textMesh) {
+                    // Step 1: Analyze text characteristics
+                    const text = document.getElementById('textInput').value || 'CHAOS';
+                    const charCount = text.length;
+                    const hasNewlines = text.includes('\n');
+                    const lineCount = hasNewlines ? text.split('\n').length : 1;
+                    
+                    // Step 2: Calculate ideal text aspect ratio
+                    const avgCharAspect = 0.6; // Typical font width-to-height ratio
+                    const charsPerLine = hasNewlines ? Math.max(...text.split('\n').map(line => line.length)) : charCount;
+                    const estimatedTextWidth = charsPerLine * avgCharAspect;
+                    const estimatedTextHeight = lineCount;
+                    const idealTextAspect = estimatedTextWidth / estimatedTextHeight;
+                    
+                    // Step 3: Get current camera view ratio
+                    const currentViewAspect = originalWidth / originalHeight;
+                    
+                    // Step 4: Smart aspect ratio selection
+                    let exportAspect;
+                    
+                    if (charCount <= 4) {
+                        // Short text: prefer square-ish (1:1 to 1.5:1)
+                        exportAspect = Math.min(idealTextAspect, 1.5);
+                    } else if (charCount <= 10) {
+                        // Medium text: use calculated ratio but limit extremes
+                        exportAspect = Math.max(1.2, Math.min(idealTextAspect, 3.0));
+                    } else {
+                        // Long text: definitely landscape, but not too extreme
+                        exportAspect = Math.max(2.0, Math.min(idealTextAspect, 4.0));
+                    }
+                    
+                    // Adjust based on current camera view if it makes sense
+                    if (Math.abs(currentViewAspect - exportAspect) < 0.5) {
+                        exportAspect = currentViewAspect; // Use current view if close
+                    }
+                    
+                    // Step 5: Calculate export dimensions
+                    const maxDimension = 768;
+                    let exportWidth, exportHeight;
+                    
+                    if (exportAspect > 1) {
+                        exportWidth = maxDimension;
+                        exportHeight = maxDimension / exportAspect;
+                    } else {
+                        exportHeight = maxDimension;
+                        exportWidth = maxDimension * exportAspect;
+                    }
+                    
+                    // Set renderer size
+                    renderer.setSize(exportWidth, exportHeight);
+                    camera.aspect = exportAspect;
+                    camera.updateProjectionMatrix();
+                    
+                    // Step 6: Frame camera to fill export area with text
+                    // Calculate combined bounding box of all letters
+                    let minX = Infinity, minY = Infinity, minZ = Infinity;
+                    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+                    
+                    textMeshes.forEach(mesh => {
+                        mesh.geometry.computeBoundingBox();
+                        const letterBbox = mesh.geometry.boundingBox;
+                        if (letterBbox) {
+                            minX = Math.min(minX, letterBbox.min.x);
+                            minY = Math.min(minY, letterBbox.min.y);
+                            minZ = Math.min(minZ, letterBbox.min.z);
+                            maxX = Math.max(maxX, letterBbox.max.x);
+                            maxY = Math.max(maxY, letterBbox.max.y);
+                            maxZ = Math.max(maxZ, letterBbox.max.z);
+                        }
+                    });
+                    
+                    const bbox = {
+                        min: { x: minX, y: minY, z: minZ },
+                        max: { x: maxX, y: maxY, z: maxZ }
+                    };
+                    const textWidth = bbox.max.x - bbox.min.x;
+                    const textHeight = bbox.max.y - bbox.min.y;
+                    
+                    // Position camera to center on text
+                    const centerX = (bbox.max.x + bbox.min.x) / 2;
+                    const centerY = (bbox.max.y + bbox.min.y) / 2;
+                    const centerZ = (bbox.max.z + bbox.min.z) / 2;
+                    
+                    // Calculate camera distance to fill frame with text (zoom in much more)
+                    const textAspect = textWidth / textHeight;
+                    let limitingDimension;
+                    
+                    if (exportAspect > textAspect) {
+                        // Export is wider than text, height is limiting
+                        limitingDimension = textHeight;
+                    } else {
+                        // Export is taller than text, width is limiting
+                        limitingDimension = textWidth;
+                    }
+                    
+                    const fov = camera.fov * Math.PI / 180;
+                    // Much more aggressive zoom - text should fill most of the frame
+                    const cameraDistance = limitingDimension / (2 * Math.tan(fov / 2)) * 0.25; // 60% of calculated distance = much closer
+                    
+                    camera.position.set(centerX, centerY, centerZ + cameraDistance);
+                    camera.lookAt(centerX, centerY, centerZ);
+                    
+                    console.log(`Smart framing: "${text}" (${charCount} chars, ${lineCount} lines)`);
+                    console.log(`Ideal aspect: ${idealTextAspect.toFixed(2)}, Export aspect: ${exportAspect.toFixed(2)}`);
+                    console.log(`Export dimensions: ${Math.round(exportWidth)}x${Math.round(exportHeight)}`);
+                } else {
+                    // Fallback to square if no text mesh
+                    renderer.setSize(768, 768);
+                }
+                
+                // Render frames
+                for (let frame = 0; frame < frames; frame++) {
+                    exportButton.textContent = `🎞️ Frame ${frame + 1}/${frames}`;
+                    
+                    // Set animation time for this frame
+                    animationTime = (frame / frames) * Math.PI * 4 * animSpeed;
+                    
+                    // Apply distortions for this frame
+                    applyDistortions();
+                    
+                    // Render frame
+                    renderer.render(scene, camera);
+                    
+                    // Capture frame as data URL
+                    const dataURL = renderer.domElement.toDataURL('image/png');
+                    frameImages.push(dataURL);
+                    
+                    // Small delay to prevent browser freeze
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                exportButton.textContent = '🎞️ Downloading...';
+                
+                // Download each frame as a separate PNG file
+                for (let i = 0; i < frameImages.length; i++) {
+                    const link = document.createElement('a');
+                    link.download = `crazy-text-frame-${String(i + 1).padStart(3, '0')}.png`;
+                    link.href = frameImages[i];
+                    link.click();
+                    
+                    // Small delay between downloads to prevent browser blocking
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                
+                console.log(`🎞️ Downloaded ${frames} PNG frames (delay: ${frameDelay}ms)`);
+                
+                console.log('🎉 Frame export complete!');
+                
+            } catch (error) {
+                console.error('Error exporting frames:', error);
+                alert('Error capturing frames: ' + error.message);
+            } finally {
+                // Restore original state
+                document.getElementById('enableAnimation').checked = wasAnimating;
+                animationTime = originalTime;
+                exportButton.textContent = originalText;
+                
+                // Restore original canvas size
+                renderer.setSize(originalWidth, originalHeight);
+                
+                // Restore camera properties (not position - let controls handle that)
+                camera.zoom = originalCameraState.zoom;
+                camera.aspect = originalCameraState.aspect;
+                camera.fov = originalCameraState.fov;
+                camera.near = originalCameraState.near;
+                camera.far = originalCameraState.far;
+                camera.updateProjectionMatrix();
+                
+                // Completely restore controls state first
+                if (controls && originalControlsState) {
+                    controls.distance = originalControlsState.distance;
+                    controls.mouseX = originalControlsState.mouseX;
+                    controls.mouseY = originalControlsState.mouseY;
+                    controls.isMouseDown = false; // Ensure mouse isn't stuck down
+                    
+                    // Let controls system calculate and set camera position
+                    if (controls.isMouseDown || originalControlsState.isMouseDown) {
+                        controls.update();
+                    } else {
+                        // If mouse wasn't down, manually set position from controls state
+                        camera.position.x = Math.sin(controls.mouseX * 0.01) * controls.distance;
+                        camera.position.z = Math.cos(controls.mouseX * 0.01) * controls.distance;
+                        camera.position.y = controls.mouseY * 0.5;
+                        camera.lookAt(0, 0, 0);
+                    }
+                } else {
+                    // Fallback: restore camera position directly
+                    camera.position.copy(originalCameraState.position);
+                    camera.lookAt(0, 0, 0);
+                }
+                
+                // Force multiple renders to ensure proper restoration
+                for (let i = 0; i < 3; i++) {
+                    renderer.render(scene, camera);
+                }
+                
+                // Trigger window resize to make sure everything is properly reset
+                setTimeout(() => {
+                    onWindowResize();
+                }, 100);
+                
+                console.log('View restored to original interactive state');
+            }
+        }
+
+
+        function exportOBJ() {
+            alert('OBJ export requires additional modules. Use "Save as PNG" for now or check browser console for geometry data.');
+            if (textMesh) {
+                console.log('Text mesh geometry:', textMesh.geometry);
+                console.log('Vertices:', textMesh.geometry.attributes.position.array);
+            }
+        }
+
+        function savePreset() {
+            const preset = {
+                textInput: document.getElementById('textInput').value,
+                fontSize: document.getElementById('fontSize').value,
+                fontDepth: document.getElementById('fontDepth').value,
+                curveSegments: document.getElementById('curveSegments').value,
+                lineSpacing: document.getElementById('lineSpacing').value,
+                textYPosition: document.getElementById('textYPosition').value,
+                textZPosition: document.getElementById('textZPosition').value,
+                noiseScale: document.getElementById('noiseScale').value,
+                noiseStrength: document.getElementById('noiseStrength').value,
+                attractorStrength: document.getElementById('attractorStrength').value,
+                falloffRadius: document.getElementById('falloffRadius').value,
+                clipStrength: document.getElementById('clipStrength').value,
+                baseThickness: document.getElementById('baseThickness').value,
+                variationFactor: document.getElementById('variationFactor').value,
+                extrudeHeight: document.getElementById('extrudeHeight').value,
+                twistAngle: document.getElementById('twistAngle').value,
+                taperFactor: document.getElementById('taperFactor').value,
+                chaosFactor: document.getElementById('chaosFactor').value,
+                animationSpeed: document.getElementById('animationSpeed').value,
+                materialType: document.getElementById('materialType').value,
+                colorMode: document.getElementById('colorMode').value,
+                backgroundColor: document.getElementById('backgroundColor').value,
+                attractorPoints: attractorPoints,
+                voronoiPoints: voronoiPoints
+            };
+
+            const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.download = 'crazy-text-3d-preset.json';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
+        function loadPreset() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            const preset = JSON.parse(event.target.result);
+
+                            // Apply all preset values
+                            Object.keys(preset).forEach(key => {
+                                if (key === 'attractorPoints') {
+                                    attractorPoints = preset[key];
+                                } else if (key === 'voronoiPoints') {
+                                    voronoiPoints = preset[key];
+                                } else {
+                                    const element = document.getElementById(key);
+                                    if (element) {
+                                        element.value = preset[key];
+                                    }
+                                }
+                            });
+
+                            updateSliderDisplays();
+                            generateRandomPoints(); // This will use the loaded points
+                            createTextGeometry();
+                        } catch (error) {
+                            alert('Error loading preset: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+    </script>
+</body>
+</html>
