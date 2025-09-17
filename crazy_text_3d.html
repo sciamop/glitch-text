@@ -915,18 +915,35 @@ function createSimpleFallbackFont() {
         }
 
         function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth) {
-            // Create consistent polygon count for all characters based on resolution
-            const targetPolygons = Math.floor(resolution * 20); // 20 polygons per resolution unit
+            // Identify straight letters that are problematic with subdivision
+            const straightLetters = ['T', 'E', 'F', 'H', 'I', 'L', 'N', 'Z', 'M', 'A', 'V', 'W', 'X', 'Y', 'K', '1', '7', '4'];
+            const isStraightLetter = straightLetters.includes(char.toUpperCase());
             
-            console.log(`Character "${char}": Target ${targetPolygons} polygons`);
+            // Different approach for straight vs curved letters
+            let targetPolygons;
+            if (isStraightLetter) {
+                // Much more conservative for straight letters - rely on base curve segments
+                targetPolygons = Math.min(Math.floor(resolution * 5), 300);
+            } else {
+                // Normal approach for curved letters
+                targetPolygons = Math.min(Math.floor(resolution * 12), 1200);
+            }
+            
+            console.log(`Character "${char}": Target ${targetPolygons} polygons (resolution: ${resolution}, straight: ${isStraightLetter})`);
             
             try {
                 // Generate base shape from font
                 const charShapes = font.generateShapes(char, fontSize);
                 
                 if (charShapes && charShapes.length > 0) {
-                    // Start with minimal curve segments to get base shape
-                    const baseCurveSegments = 8; // Low base detail
+                    // For straight letters, use much higher base curve segments instead of subdivision
+                    let baseCurveSegments;
+                    if (isStraightLetter) {
+                        baseCurveSegments = Math.min(Math.max(12, Math.floor(resolution / 2)), 64); // Higher base quality
+                    } else {
+                        baseCurveSegments = Math.min(Math.max(8, Math.floor(resolution / 4)), 24); // Normal base quality
+                    }
+                    
                     let charGeometry;
                     
                     if (enableExtrude) {
@@ -943,19 +960,31 @@ function createSimpleFallbackFont() {
                         charGeometry = new THREE.ShapeGeometry(charShapes, baseCurveSegments);
                     }
                     
-                    // Now subdivide to reach target polygon count
+                    // Compute normals to fix potential rendering issues
+                    charGeometry.computeVertexNormals();
+                    
                     let currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
                     
-                    while (currentPolygons < targetPolygons && currentPolygons < 5000) {
-                        const projectedPolygons = currentPolygons * 4;
-                        
-                        if (projectedPolygons <= targetPolygons * 1.2) { // Allow 20% overshoot
-                            addGeometrySubdivision(charGeometry, 1);
-                            currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
-                            console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons`);
-                        } else {
-                            break; // Would overshoot too much
+                    // Only subdivide curved letters - straight letters get quality from base curve segments
+                    if (!isStraightLetter) {
+                        // Conservative subdivision for curved letters only
+                        while (currentPolygons < targetPolygons && currentPolygons < 1200) {
+                            const projectedPolygons = currentPolygons * 4;
+                            
+                            if (projectedPolygons <= targetPolygons * 1.1 && projectedPolygons < 1200) {
+                                addGeometrySubdivision(charGeometry, 1);
+                                
+                                // Recompute normals after subdivision to prevent black rendering
+                                charGeometry.computeVertexNormals();
+                                
+                                currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
+                                console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons`);
+                            } else {
+                                break;
+                            }
                         }
+                    } else {
+                        console.log(`Character "${char}": Skipping subdivision (straight letter), using base quality`);
                     }
                     
                     console.log(`Character "${char}": Final ${currentPolygons} polygons (target: ${targetPolygons})`);
@@ -1054,9 +1083,9 @@ function createSimpleFallbackFont() {
                 const currentPolygons = indices ? indices.length / 3 : vertices.length / 9;
                 const projectedPolygons = currentPolygons * 4;
                 
-                // Safety check - don't create too many polygons total
-                if (projectedPolygons > 50000) {
-                    console.log(`Subdivision stopped at level ${level}: would create ${projectedPolygons} polygons (max: 50000)`);
+                // Much more conservative safety check to prevent black rendering
+                if (projectedPolygons > 3000) {
+                    console.log(`Subdivision stopped at level ${level}: would create ${projectedPolygons} polygons (max: 3000 for stability)`);
                     break;
                 }
                 
