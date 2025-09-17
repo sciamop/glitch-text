@@ -1,166 +1,153 @@
-# 🔥 CRAZY TEXT GRASSHOPPER PYTHON SCRIPTS 🔥
+# Crazy Text 3D Generator 🔥
 
-This folder contains individual Grasshopper Python components for creating wild text effects. Each script is designed to be copied directly into a Python component in Grasshopper.
+A fucking insane web-based 3D text distortion engine built with Three.js that turns boring text into animated, distorted masterpieces.
 
-## 📁 Scripts Overview
+![Crazy Text 3D](https://img.shields.io/badge/Three.js-0.155.0-blue) ![Status](https://img.shields.io/badge/Status-Chaotic%20Awesome-brightgreen)
 
-### 1. `text_to_curves.py`
-**Purpose**: Convert Rhino text object to curves
-**Inputs**: 
-- `text_object` (Rhino text object): Your text object from Rhino
+## What This Monster Does
 
-**Outputs**: 
-- `curves`: List of curves representing the text
+This thing takes your text and absolutely destroys it in the most beautiful way possible:
 
-### 2. `noise_warp.py`
-**Purpose**: Apply Perlin-like noise warping
-**Inputs**:
-- `curves` (list): Input curves
-- `noise_scale` (float): Noise frequency (0.01-0.5)
-- `noise_strength` (float): Warp intensity (0-100)
-- `seed` (int): Random seed for consistency
+- **3D Text Rendering** - Real font loading with proper geometry
+- **Distortion Effects** - Perlin noise, attractors, Voronoi chaos
+- **Animation** - Smooth, customizable motion
+- **Export Capabilities** - Animated SVG and GIF frame sequences
+- **Individual Letter Control** - Each character is its own 3D object
+- **Polygon Management** - Smart subdivision to prevent geometry explosion
 
-**Outputs**:
-- `warped_curves`: Noise-distorted curves
+## Features That'll Blow Your Mind
 
-### 3. `attractor_distort.py`
-**Purpose**: Apply attractor-based distortion
-**Inputs**:
-- `curves` (list): Input curves
-- `attractor_points` (list): List of attractor center points
-- `attractor_strength` (float): Pull strength (0-100)
-- `falloff_radius` (float): Influence radius (0-200)
+### 🎨 **Visual Effects**
+- **Color Modes**: Rainbow, black, white, random, position-based, noise-based
+- **Background Colors**: Dark, black, white, gray, blue, red
+- **Thickness Variation**: Dynamic depth changes based on noise
+- **Smooth Animations**: Configurable speed and timing
 
-**Outputs**:
-- `distorted_curves`: Attractor-distorted curves
+### 🔧 **Distortion Controls**
+- **Perlin Noise**: 3D noise distortion with scale control
+- **Attractors**: Magnetic points that pull vertices (up to 30 points, max strength 1000)
+- **Voronoi**: Cellular pattern distortion (up to 30 points, max strength 1000)
+- **Threshold Clipping**: Hard cutoff for extreme distortions
 
-### 4. `voronoi_clip.py`
-**Purpose**: Apply Voronoi cell-based clipping
-**Inputs**:
-- `curves` (list): Input curves
-- `voronoi_points` (list): Voronoi cell centers
-- `clip_strength` (float): Clipping intensity (0-50)
+### 📐 **Geometry Settings**
+- **Resolution**: Polygon density per character (3-100)
+- **2D/3D Toggle**: Render as curves or extruded 3D shapes
+- **Base Depth**: Extrusion thickness for 3D mode
+- **Smart Polygon Limits**: Prevents geometry explosion on curved letters (2000 max per character)
 
-**Outputs**:
-- `clipped_curves`: Voronoi-clipped curves
+### 📝 **Text Controls**
+- **Multi-line Support**: Use `/n` for line breaks
+- **Line Spacing**: Vertical spacing control (-0.5 to 2.0)
+- **Position Controls**: X, Y, Z positioning
+- **Font Loading**: Real Three.js font with fallback system
 
-### 5. `thickness_variation.py`
-**Purpose**: Apply variable thickness to curves
-**Inputs**:
-- `curves` (list): Input curves
-- `base_thickness` (float): Base thickness (5-50)
-- `variation_factor` (float): Variation amount (0-1)
-- `noise_scale` (float): Thickness noise scale (0.01-0.5)
+### 📤 **Export Options**
+- **Animated SVG**: 30-frame animations respecting speed settings
+- **GIF Frames**: PNG sequence export for GIF creation (768px max)
+- **Smart Framing**: Auto-crops to text bounds with optimal aspect ratio
 
-**Outputs**:
-- `thickened_curves`: Variable thickness curves
+## How to Use This Beast
 
-### 6. `extrude_twist.py`
-**Purpose**: Create 3D twisted extrusions
-**Inputs**:
-- `curves` (list): Input curves
-- `extrude_height` (float): Extrusion height (20-200)
-- `twist_angle` (float): Twist angle in degrees (0-360)
-- `taper_factor` (float): Taper amount (0-1)
-- `extrude_vector` (vector): Extrusion direction vector
+1. **Open the HTML file** in a modern browser (fuck IE6)
+2. **Type your text** in the input field
+3. **Adjust the chaos** with all the sliders and controls
+4. **Watch it dance** with the animation toggle
+5. **Export your creation** as SVG or GIF frames
 
-**Outputs**:
-- `twisted_meshes`: 3D twisted mesh objects
+### Controls Breakdown
 
-### 7. `master_crazy_text.py`
-**Purpose**: All-in-one crazy text generator
-**Inputs**:
-- `curves` (list of curves): Input text curves
-- `chaos_factor` (float): Overall chaos level (0-100)
-- `noise_scale` (float): Noise frequency
-- `noise_strength` (float): Noise distortion intensity
-- `attractor_points` (list of points): Attractor centers
-- `attractor_strength` (float): Attractor pull strength
-- `falloff_radius` (float): Attractor influence radius
-- `voronoi_points` (list): Voronoi centers
-- `clip_strength` (float): Voronoi clipping intensity
-- `base_thickness` (float): Base thickness for variation
-- `variation_factor` (float): Thickness variation amount
-- `thickness_noise_scale` (float): Thickness noise scale
-- `extrude_height` (float): 3D height
-- `twist_angle` (float): Twist amount
-- `taper_factor` (float): Taper amount
-- `extrude_vector` (vector): Extrusion direction vector
-- `is_extrude` (bool): Whether to create 3D extrusion
+#### Text & Font
+- **Text Input**: Your words of wisdom
+- **Line Spacing**: How much space between lines
+- **Resolution**: More polygons = smoother curves (but heavier)
 
-**Outputs**:
-- `final_curves`: Final distorted curves
-- `final_meshes`: Final 3D meshes
+#### Positioning
+- **X/Y/Z Position**: Move your text around in 3D space
 
-## 🚀 How to Use
+#### Distortion Effects
+- **Noise Scale**: How wild the Perlin noise gets (0-2.0)
+- **Attractor Count**: Number of magnetic points (1-30)
+- **Attractor Strength**: How strong the pull is (0-1000)
+- **Voronoi Count**: Number of cellular points (1-30)
+- **Voronoi Strength**: Cellular distortion intensity (0-1000)
+- **Threshold**: Hard limit for distortions
 
-### Method 1: Individual Components
-1. **Create text in Rhino** first
-2. **Add Python Component** to your Grasshopper canvas
-3. **Copy script content** from any `.py` file
-4. **Paste into Python component**
-5. **Connect Rhino text object** to input
-6. **Set other parameters** as specified
-7. **Connect outputs** to other components
+#### 3D Extrusion
+- **Enable Extrusion**: Toggle between 2D curves and 3D shapes
+- **Base Depth**: How thick the 3D extrusion is
+- **Thickness Variation**: Dynamic depth changes
 
-### Method 2: Master Component
-1. **Create text curves** using Text Curves component or text_to_curves.py
-2. **Use `master_crazy_text.py`** for all effects at once
-3. **Connect curves** and other inputs
-4. **Get both curves and meshes** as outputs
-5. **Adjust `chaos_factor`** to control overall wildness
+#### Visual Style
+- **Color Mode**: How to color your text
+- **Background**: Scene background color
+- **Animation Speed**: How fast the chaos moves
 
-### Method 3: Chain Effects
-1. **Create text in Rhino** first
-2. **Start with `text_to_curves.py`**
-3. **Chain outputs** through other scripts
-4. **Create custom effect combinations**
-5. **Fine-tune each effect** individually
+## Technical Shit
 
-## 💡 Pro Tips
+### Architecture
+- **Individual Letter Meshes**: Each character is a separate Three.js object
+- **Polygon-Based System**: Smart subdivision based on character complexity
+- **Global Coordinate System**: Proper positioning for multi-character text
+- **Memory Management**: Proper disposal of old geometries
 
-1. **Start with Master Script**: Use `master_crazy_text.py` first to see all effects
-2. **Adjust Chaos Factor**: This controls overall wildness (0-100)
-3. **Use Extreme Values**: Don't be afraid to push parameters to limits
-4. **Chain Effects**: Combine multiple scripts for maximum chaos
-5. **Preview Often**: Use Grasshopper's preview to see results in real-time
+### Performance Optimizations
+- **Polygon Limits**: 2000 max per character to prevent browser death
+- **Smart Subdivision**: Only adds detail where needed
+- **Efficient Rendering**: WebGL with fallback options
+- **Export Optimization**: 3 decimal precision for file size control
 
-## 🎯 Parameter Ranges
+### Export Details
+- **SVG**: 30 frames, respects animation speed, global coordinate system
+- **GIF**: PNG sequence, smart framing, 768px max width, 30 frames
 
-- **Chaos Factor**: 0-100 (higher = more wild)
-- **Noise Scale**: 0.01-0.5 (lower = smoother)
-- **Noise Strength**: 0-100 (higher = more distortion)
-- **Attractor Strength**: 0-100 (higher = stronger pull)
-- **Falloff Radius**: 0-200 (larger = wider influence)
-- **Clip Strength**: 0-50 (higher = more clipping)
-- **Base Thickness**: 5-50 (higher = thicker)
-- **Extrude Height**: 20-200 (higher = taller 3D)
-- **Twist Angle**: 0-360 (full rotation)
+## Browser Requirements
 
-## 🔧 Troubleshooting
+- **Modern Browser**: Chrome, Firefox, Safari, Edge
+- **WebGL Support**: For 3D rendering
+- **ES6 Modules**: For Three.js imports
+- **File Download**: For export features
 
-**"Script not working"**
-- Check that all inputs are connected
-- Verify parameter types match (str, float, point, list)
-- Make sure Python component is enabled
+## File Structure
 
-**"Performance is slow"**
-- Reduce point count in scripts (change 100 to 50)
-- Lower extrude height steps (change 20 to 10)
-- Simplify voronoi point count
+```
+crazy_text_3d.html    # The entire fucking application
+README.md            # This beautiful documentation
+```
 
-**"Results look weird"**
-- Try different parameter ranges
-- Check that attractor and voronoi points are reasonable
-- Verify font name is valid
+## Known Issues & Quirks
 
-## 🎨 Creative Combinations
+- **Font Loading**: Uses Helvetiker font with fallback system
+- **Memory Usage**: High polygon counts can be heavy
+- **Export Size**: SVG files can get large with complex animations
+- **Browser Limits**: Very high resolution settings might crash older browsers
 
-- **Wave + Noise**: Organic, flowing text
-- **Attractor + Voronoi**: Geometric, structured chaos
-- **Thickness + Extrude**: 3D variable-width text
-- **All Effects**: Maximum visual chaos
+## Development Notes
+
+This monstrosity evolved through:
+1. **FontLoader Issues** → ES6 module imports
+2. **Single Mesh** → Individual letter meshes
+3. **Polygon Explosion** → Smart subdivision limits
+4. **Export Problems** → Global coordinate systems
+5. **Performance Issues** → Polygon management
+6. **Coordinate Chaos** → Proper world space calculations
+
+### Key Functions
+- `createIndividualLetterMeshes()` - Creates separate meshes per character
+- `createPolygonBasedCharacterGeometry()` - Smart polygon subdivision
+- `applyDistortions()` - All the beautiful chaos
+- `exportAnimatedSVG()` - SVG export with global coordinates
+- `exportAnimatedGIF()` - Frame sequence export
+
+## Contributing
+
+Want to add more chaos? Fork it and make it even more insane. Just don't break the polygon limits or your browser will cry.
+
+## License
+
+Do whatever the fuck you want with it. It's art.
 
 ---
 
-**Remember**: These scripts are designed to create wild, chaotic text effects. Don't be afraid to experiment with extreme values - that's where the magic happens! 🔥
+*"Sometimes you need to break text to make it beautiful."* 🎨
+
+**Built with Three.js, Perlin noise, and way too much caffeine.**
