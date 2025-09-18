@@ -340,11 +340,6 @@
                 <label for="extrudeHeight">Additional Height: <span class="slider-value" id="extrudeHeightValue">50</span></label>
                 <input type="range" id="extrudeHeight" min="10" max="150" value="50">
                 
-                <label for="twistAngle">Twist Angle: <span class="slider-value" id="twistAngleValue">45</span></label>
-                <input type="range" id="twistAngle" min="0" max="360" value="45">
-                
-                <label for="taperFactor">Taper: <span class="slider-value" id="taperFactorValue">0.3</span></label>
-                <input type="range" id="taperFactor" min="0" max="1" step="0.1" value="0.3">
             </div>
 
             <div class="control-group">
@@ -915,9 +910,15 @@ function createSimpleFallbackFont() {
         }
 
         function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth) {
-            // Identify straight letters that are problematic with subdivision
-            const straightLetters = ['T', 'E', 'F', 'H', 'I', 'L', 'N', 'Z', 'M', 'A', 'V', 'W', 'X', 'Y', 'K', '1', '7', '4'];
-            const isStraightLetter = straightLetters.includes(char.toUpperCase());
+            // Identify letters that are problematic with subdivision (straight edges, sharp angles, or simple curves)
+            // Include both uppercase and lowercase versions
+            const problematicLetters = [
+                'T', 'E', 'F', 'H', 'I', 'L', 'N', 'Z', 'M', 'A', 'V', 'W', 'X', 'Y', 'K', 'D', 'P', 'U', 'B', 'R',
+                't', 'e', 'f', 'h', 'i', 'l', 'n', 'z', 'm', 'a', 'v', 'w', 'x', 'y', 'k', 'd', 'p', 'u', 'b', 'r',
+                'j', 'J', // Lowercase j has simple curves that break with subdivision
+                '1', '7', '4', '0'
+            ];
+            const isStraightLetter = problematicLetters.includes(char);
             
             // Different approach for straight vs curved letters
             let targetPolygons;
@@ -1411,14 +1412,10 @@ function createSimpleFallbackFont() {
             if (textMeshes.length === 0) return;
 
             const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
-            const twistAngle = parseInt(document.getElementById('twistAngle').value);
-            const taperFactor = parseFloat(document.getElementById('taperFactor').value);
 
             // Clone the original geometry
             const extrudeGeometry = textMesh.geometry.clone();
             
-            // Apply twisted extrusion effect
-            applyTwistedExtrusion(extrudeGeometry, extrudeHeight, twistAngle, taperFactor);
 
             // Create extruded mesh
             const extrudeMaterial = createMaterial();
@@ -1438,50 +1435,6 @@ function createSimpleFallbackFont() {
             scene.add(extrudedMesh);
         }
 
-        function applyTwistedExtrusion(geometry, height, twistAngle, taperFactor) {
-            const vertices = geometry.attributes.position.array;
-            const newVertices = [];
-
-            // Get geometry bounds for centering
-            geometry.computeBoundingBox();
-            const centerX = (geometry.boundingBox.max.x + geometry.boundingBox.min.x) / 2;
-            const centerY = (geometry.boundingBox.max.y + geometry.boundingBox.min.y) / 2;
-
-            // Create twisted extrusion layers
-            const layers = 15;
-            for (let layer = 0; layer < layers; layer++) {
-                const layerHeight = (layer / (layers - 1)) * height;
-                const twistRadians = (twistAngle * Math.PI / 180) * (layerHeight / height);
-                const taper = 1.0 - taperFactor * (layerHeight / height);
-
-                for (let i = 0; i < vertices.length; i += 3) {
-                    const x = vertices[i];
-                    const y = vertices[i + 1];
-                    const z = vertices[i + 2];
-
-                    // Translate to center for rotation
-                    const relativeX = x - centerX;
-                    const relativeY = y - centerY;
-
-                    // Apply twist rotation
-                    const cosTheta = Math.cos(twistRadians);
-                    const sinTheta = Math.sin(twistRadians);
-                    const newX = relativeX * cosTheta - relativeY * sinTheta;
-                    const newY = relativeX * sinTheta + relativeY * cosTheta;
-
-                    // Apply taper
-                    const finalX = centerX + newX * taper;
-                    const finalY = centerY + newY * taper;
-                    const finalZ = z + layerHeight;
-
-                    newVertices.push(finalX, finalY, finalZ);
-                }
-            }
-
-            // Update geometry with new vertices
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(newVertices, 3));
-            geometry.computeVertexNormals();
-        }
 
         function generateRandomPoints() {
             attractorPoints = [];
@@ -1720,14 +1673,12 @@ function createSimpleFallbackFont() {
 
             // 3D extrusion controls
             document.getElementById('extrudeHeight').addEventListener('input', updateExtrusion);
-            document.getElementById('twistAngle').addEventListener('input', updateExtrusion);
-            document.getElementById('taperFactor').addEventListener('input', updateExtrusion);
             document.getElementById('enableExtrude').addEventListener('change', updateExtrusion);
 
             // All sliders update display values
             const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'extrudeHeight', 'twistAngle', 'taperFactor', 'chaosFactor', 'animationSpeed'];
+                            'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
@@ -1913,8 +1864,6 @@ function createSimpleFallbackFont() {
             document.getElementById('baseThickness').value = 1.2;
             document.getElementById('variationFactor').value = 0.4;
             document.getElementById('extrudeHeight').value = 50;
-            document.getElementById('twistAngle').value = 45;
-            document.getElementById('taperFactor').value = 0.3;
             document.getElementById('chaosFactor').value = 50;
             document.getElementById('animationSpeed').value = 1;
             
@@ -1945,7 +1894,7 @@ function createSimpleFallbackFont() {
         function updateSliderDisplays() {
             const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'extrudeHeight', 'twistAngle', 'taperFactor', 'chaosFactor', 'animationSpeed'];
+                            'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
@@ -2475,8 +2424,6 @@ function createSimpleFallbackFont() {
                 baseThickness: document.getElementById('baseThickness').value,
                 variationFactor: document.getElementById('variationFactor').value,
                 extrudeHeight: document.getElementById('extrudeHeight').value,
-                twistAngle: document.getElementById('twistAngle').value,
-                taperFactor: document.getElementById('taperFactor').value,
                 chaosFactor: document.getElementById('chaosFactor').value,
                 animationSpeed: document.getElementById('animationSpeed').value,
                 materialType: document.getElementById('materialType').value,
