@@ -268,8 +268,18 @@
                 <label for="curveSegments">Resolution: <span class="slider-value" id="curveSegmentsValue">12</span></label>
                 <input type="range" id="curveSegments" min="3" max="100" value="12">
                 
-                <label for="lineSpacing">Line Spacing: <span class="slider-value" id="lineSpacingValue">0.8</span></label>
+                <label for="lineSpacing">Line Spacing (/n for breaks): <span class="slider-value" id="lineSpacingValue">0.8</span></label>
                 <input type="range" id="lineSpacing" min="-0.5" max="2.0" step="0.1" value="0.8">
+                
+                <label for="textAlign">Text Alignment:</label>
+                <select id="textAlign" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; margin-bottom: 10px;">
+                    <option value="center" style="background: #333; color: #fff;">Center</option>
+                    <option value="left" style="background: #333; color: #fff;">Left</option>
+                    <option value="right" style="background: #333; color: #fff;">Right</option>
+                </select>
+                
+                <label for="textXPosition">X Position: <span class="slider-value" id="textXPositionValue">0</span></label>
+                <input type="range" id="textXPosition" min="-200" max="200" value="0">
                 
                 <label for="textYPosition">Y Position: <span class="slider-value" id="textYPositionValue">0</span></label>
                 <input type="range" id="textYPosition" min="-200" max="200" value="0">
@@ -363,6 +373,7 @@
                     <option value="standard" style="background: #333; color: #fff;">Standard</option>
                     <option value="phong" style="background: #333; color: #fff;">Phong</option>
                     <option value="lambert" style="background: #333; color: #fff;">Lambert</option>
+                    <option value="toon" style="background: #333; color: #fff;">Flat/Cel Shading</option>
                     <option value="wireframe" style="background: #333; color: #fff;">Wireframe</option>
                     <option value="normal" style="background: #333; color: #fff;">Normal Map</option>
                 </select>
@@ -741,7 +752,24 @@ function createSimpleFallbackFont() {
             
             lines.forEach((line, lineIndex) => {
                 const chars = line.split('');
-                let offsetX = -(chars.length - 1) * size * 0.35; // Center each line
+                const textAlign = document.getElementById('textAlign').value;
+                
+                // Calculate line positioning based on alignment
+                let offsetX;
+                const lineWidth = (chars.length - 1) * size * 0.35;
+                switch (textAlign) {
+                    case 'left':
+                        offsetX = 0;
+                        break;
+                    case 'right':
+                        offsetX = -lineWidth * 2;
+                        break;
+                    case 'center':
+                    default:
+                        offsetX = -lineWidth; // Center each line
+                        break;
+                }
+                
                 const offsetY = (lines.length - 1 - lineIndex) * lineHeight - (lines.length - 1) * lineHeight * 0.5; // Center vertically
                 
                 chars.forEach((char) => {
@@ -1196,6 +1224,7 @@ function createSimpleFallbackFont() {
             const fontDepth = parseInt(document.getElementById('fontDepth').value);
             const baseSegments = parseInt(document.getElementById('curveSegments').value);
             const enableExtrude = document.getElementById('enableExtrude').checked;
+            const textXPosition = parseFloat(document.getElementById('textXPosition').value);
             const textYPosition = parseFloat(document.getElementById('textYPosition').value);
             const textZPosition = parseFloat(document.getElementById('textZPosition').value);
 
@@ -1244,8 +1273,22 @@ function createSimpleFallbackFont() {
                         }
                     });
                     
-                    // Start positioning from left edge, centered
-                    let offsetX = -totalLineWidth / 2;
+                    // Start positioning based on text alignment
+                    const textAlign = document.getElementById('textAlign').value;
+                    let offsetX;
+                    switch (textAlign) {
+                        case 'left':
+                            offsetX = 0;
+                            break;
+                        case 'right':
+                            offsetX = -totalLineWidth;
+                            break;
+                        case 'center':
+                        default:
+                            offsetX = -totalLineWidth / 2; // Center each line
+                            break;
+                    }
+                    
                     const offsetY = (lines.length - 1 - lineIndex) * lineHeight - (lines.length - 1) * lineHeight * 0.5;
 
                     chars.forEach((char, charIndex) => {
@@ -1280,6 +1323,7 @@ function createSimpleFallbackFont() {
                             const charMesh = new THREE.Mesh(charGeometry, material);
                             charMesh.castShadow = true;
                             charMesh.receiveShadow = true;
+                            charMesh.position.x = textXPosition;
                             charMesh.position.y = textYPosition;
                             charMesh.position.z = textZPosition;
                             charMesh.userData = { character: char, letterIndex: letterIndex };
@@ -1322,8 +1366,10 @@ function createSimpleFallbackFont() {
             const material = createMaterial();
             const fallbackMesh = new THREE.Mesh(fallbackGeometry, material);
             
+            const textXPosition = parseFloat(document.getElementById('textXPosition').value);
             const textYPosition = parseFloat(document.getElementById('textYPosition').value);
             const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+            fallbackMesh.position.x = textXPosition;
             fallbackMesh.position.y = textYPosition;
             fallbackMesh.position.z = textZPosition;
             
@@ -1353,6 +1399,12 @@ function createSimpleFallbackFont() {
                     break;
                 case 'lambert':
                     material = new THREE.MeshLambertMaterial({ 
+                        color: color,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
+                case 'toon':
+                    material = new THREE.MeshToonMaterial({
                         color: color,
                         side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
                     });
@@ -1424,9 +1476,11 @@ function createSimpleFallbackFont() {
 
             extrudedMesh = new THREE.Mesh(extrudeGeometry, extrudeMaterial);
             
-            // Apply Y and Z position (relative to main text)
+            // Apply X, Y and Z position (relative to main text)
+            const textXPosition = parseFloat(document.getElementById('textXPosition').value);
             const textYPosition = parseFloat(document.getElementById('textYPosition').value);
             const textZPosition = parseFloat(document.getElementById('textZPosition').value);
+            extrudedMesh.position.x = textXPosition;
             extrudedMesh.position.y = textYPosition;
             extrudedMesh.position.z = textZPosition - extrudeHeight / 2;
             
@@ -1662,6 +1716,8 @@ function createSimpleFallbackFont() {
             document.getElementById('fontDepth').addEventListener('input', createTextGeometry);
             document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
             document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
+            document.getElementById('textAlign').addEventListener('change', createTextGeometry);
+            document.getElementById('textXPosition').addEventListener('input', updateTextPosition);
             document.getElementById('textYPosition').addEventListener('input', updateTextPosition);
             document.getElementById('textZPosition').addEventListener('input', updateTextPosition);
 
@@ -1676,7 +1732,7 @@ function createSimpleFallbackFont() {
             document.getElementById('enableExtrude').addEventListener('change', updateExtrusion);
 
             // All sliders update display values
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
                             'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
@@ -1749,11 +1805,13 @@ function createSimpleFallbackFont() {
         }
 
         function updateTextPosition() {
+            const textXPosition = parseFloat(document.getElementById('textXPosition').value);
             const textYPosition = parseFloat(document.getElementById('textYPosition').value);
             const textZPosition = parseFloat(document.getElementById('textZPosition').value);
             
             // Update all text mesh positions
             textMeshes.forEach(mesh => {
+                mesh.position.x = textXPosition;
                 mesh.position.y = textYPosition;
                 mesh.position.z = textZPosition;
             });
@@ -1762,6 +1820,7 @@ function createSimpleFallbackFont() {
             if (extrudedMeshes.length > 0) {
                 const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
                 extrudedMeshes.forEach(mesh => {
+                    mesh.position.x = textXPosition;
                     mesh.position.y = textYPosition;
                     mesh.position.z = textZPosition - extrudeHeight / 2;
                 });
@@ -1852,6 +1911,8 @@ function createSimpleFallbackFont() {
             document.getElementById('fontDepth').value = 20;
             document.getElementById('curveSegments').value = 12;
             document.getElementById('lineSpacing').value = 0.8;
+            document.getElementById('textAlign').value = 'center';
+            document.getElementById('textXPosition').value = 0;
             document.getElementById('textYPosition').value = 0;
             document.getElementById('textZPosition').value = 0;
             document.getElementById('noiseScale').value = 0.05;
@@ -1892,7 +1953,7 @@ function createSimpleFallbackFont() {
         }
 
         function updateSliderDisplays() {
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
                             'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
@@ -2414,6 +2475,8 @@ function createSimpleFallbackFont() {
                 fontDepth: document.getElementById('fontDepth').value,
                 curveSegments: document.getElementById('curveSegments').value,
                 lineSpacing: document.getElementById('lineSpacing').value,
+                textAlign: document.getElementById('textAlign').value,
+                textXPosition: document.getElementById('textXPosition').value,
                 textYPosition: document.getElementById('textYPosition').value,
                 textZPosition: document.getElementById('textZPosition').value,
                 noiseScale: document.getElementById('noiseScale').value,
