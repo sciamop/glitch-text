@@ -273,6 +273,9 @@
                     <label for="fillSplines">Fill Curves (solid shapes vs outline tubes)</label>
                 </div>
                 
+                <label for="tubeDiameter">Tube Diameter: <span class="slider-value" id="tubeDiameterValue">1.0</span></label>
+                <input type="range" id="tubeDiameter" min="0.1" max="5.0" step="0.1" value="1.0">
+                
                 <label for="lineSpacing">Line Spacing (/n for breaks): <span class="slider-value" id="lineSpacingValue">0.8</span></label>
                 <input type="range" id="lineSpacing" min="-0.5" max="2.0" step="0.1" value="0.8">
                 
@@ -1042,7 +1045,8 @@ function createSimpleFallbackFont() {
             });
             
             // Create tube geometry from curves
-            const tubeRadius = Math.max(fontSize * 0.01, 0.5);
+            const tubeDiameter = parseFloat(document.getElementById('tubeDiameter').value);
+            const tubeRadius = tubeDiameter * Math.max(fontSize * 0.01, 0.5);
             const tubeSegments = Math.max(resolution * 2, 8);
             const radialSegments = 8;
             
@@ -1718,6 +1722,7 @@ function createSimpleFallbackFont() {
             document.getElementById('fontSize').addEventListener('input', createTextGeometry);
             document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
             document.getElementById('fillSplines').addEventListener('change', createTextGeometry);
+            document.getElementById('tubeDiameter').addEventListener('input', createTextGeometry);
             document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
             document.getElementById('textAlign').addEventListener('change', createTextGeometry);
             document.getElementById('textXPosition').addEventListener('input', updateTextPosition);
@@ -1734,7 +1739,7 @@ function createSimpleFallbackFont() {
             // All sliders update display values
             const sliders = ['fontSize', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'chaosFactor', 'animationSpeed'];
+                            'chaosFactor', 'animationSpeed', 'tubeDiameter'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
@@ -1924,7 +1929,7 @@ function createSimpleFallbackFont() {
         function updateSliderDisplays() {
             const sliders = ['fontSize', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'chaosFactor', 'animationSpeed'];
+                            'chaosFactor', 'animationSpeed', 'tubeDiameter'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
