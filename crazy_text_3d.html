@@ -276,6 +276,11 @@
                     <label for="useSplines">Use Spline Curves (smooth mathematical curves)</label>
                 </div>
                 
+                <div class="checkbox-group">
+                    <input type="checkbox" id="fillSplines" disabled>
+                    <label for="fillSplines">Fill Spline Curves (solid shapes)</label>
+                </div>
+                
                 <label for="lineSpacing">Line Spacing (/n for breaks): <span class="slider-value" id="lineSpacingValue">0.8</span></label>
                 <input type="range" id="lineSpacing" min="-0.5" max="2.0" step="0.1" value="0.8">
                 
@@ -1054,80 +1059,19 @@ function createSimpleFallbackFont() {
         
         function createSplineBasedCharacterGeometry(char, fontSize, resolution) {
             console.log(`Creating spline geometry for "${char}" with resolution ${resolution}`);
+            const fillSplines = document.getElementById('fillSplines').checked;
             
             try {
                 // Generate base shape from font
                 const charShapes = font.generateShapes(char, fontSize);
                 
                 if (charShapes && charShapes.length > 0) {
-                    const curves = [];
-                    
-                    // Convert each shape to spline curves
-                    charShapes.forEach(shape => {
-                        // Get the shape's curves (holes and main path)
-                        const shapeCurves = shape.getSpacedPoints(Math.max(resolution * 10, 50));
-                        
-                        // Create a spline curve from the points
-                        const curve = new THREE.CatmullRomCurve3(
-                            shapeCurves.map(p => new THREE.Vector3(p.x, p.y, 0))
-                        );
-                        curve.closed = true; // Close the curve for letters
-                        curves.push(curve);
-                        
-                        // Handle holes in the shape
-                        if (shape.holes && shape.holes.length > 0) {
-                            shape.holes.forEach(hole => {
-                                const holePoints = hole.getSpacedPoints(Math.max(resolution * 8, 30));
-                                const holeCurve = new THREE.CatmullRomCurve3(
-                                    holePoints.map(p => new THREE.Vector3(p.x, p.y, 0))
-                                );
-                                holeCurve.closed = true;
-                                curves.push(holeCurve);
-                            });
-                        }
-                    });
-                    
-                    // Create tube geometry from curves
-                    const tubeRadius = Math.max(fontSize * 0.01, 0.5);
-                    const tubeSegments = Math.max(resolution * 2, 8);
-                    const radialSegments = 8;
-                    
-                    if (curves.length > 0) {
-                        // For multiple curves, create a group geometry
-                        const geometries = curves.map(curve => 
-                            new THREE.TubeGeometry(curve, tubeSegments, tubeRadius, radialSegments)
-                        );
-                        
-                        // Merge all tube geometries
-                        const mergedGeometry = new THREE.BufferGeometry();
-                        const positions = [];
-                        const indices = [];
-                        let indexOffset = 0;
-                        
-                        geometries.forEach(geom => {
-                            const pos = geom.attributes.position.array;
-                            const idx = geom.index ? geom.index.array : null;
-                            
-                            positions.push(...pos);
-                            
-                            if (idx) {
-                                for (let i = 0; i < idx.length; i++) {
-                                    indices.push(idx[i] + indexOffset);
-                                }
-                                indexOffset += pos.length / 3;
-                            }
-                            
-                            geom.dispose();
-                        });
-                        
-                        mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                        if (indices.length > 0) {
-                            mergedGeometry.setIndex(indices);
-                        }
-                        mergedGeometry.computeVertexNormals();
-                        
-                        console.log(`Spline character "${char}": ${curves.length} curves, ${positions.length/3} vertices`);
-                        return mergedGeometry;
+                    if (fillSplines) {
+                        // Create filled spline shapes
+                        return createFilledSplineGeometry(charShapes, fontSize, resolution);
+                    } else {
+                        // Create tube spline curves (original behavior)
+                        return createTubeSplineGeometry(charShapes, fontSize, resolution, char);
                     }
                 }
                 
@@ -1138,6 +1082,131 @@ function createSimpleFallbackFont() {
                 // Fall back to regular polygon geometry if spline fails
                 return createFallbackCharacterGeometry(char, fontSize, 100, false, 10, 0);
             }
+        }
+        
+        function createFilledSplineGeometry(charShapes, fontSize, resolution) {
+            // Create smooth filled shapes using higher resolution curves
+            const smoothShapes = [];
+            
+            charShapes.forEach(shape => {
+                // Get high-resolution points for smooth curves
+                const points = shape.getSpacedPoints(Math.max(resolution * 20, 100));
+                
+                // Create a new smooth shape from the splined points
+                const smoothShape = new THREE.Shape();
+                if (points.length > 0) {
+                    smoothShape.moveTo(points[0].x, points[0].y);
+                    for (let i = 1; i < points.length; i++) {
+                        smoothShape.lineTo(points[i].x, points[i].y);
+                    }
+                    smoothShape.closePath();
+                    
+                    // Handle holes with smooth curves
+                    if (shape.holes && shape.holes.length > 0) {
+                        shape.holes.forEach(hole => {
+                            const holePoints = hole.getSpacedPoints(Math.max(resolution * 15, 60));
+                            if (holePoints.length > 0) {
+                                const smoothHole = new THREE.Path();
+                                smoothHole.moveTo(holePoints[0].x, holePoints[0].y);
+                                for (let i = 1; i < holePoints.length; i++) {
+                                    smoothHole.lineTo(holePoints[i].x, holePoints[i].y);
+                                }
+                                smoothHole.closePath();
+                                smoothShape.holes.push(smoothHole);
+                            }
+                        });
+                    }
+                    
+                    smoothShapes.push(smoothShape);
+                }
+            });
+            
+            if (smoothShapes.length > 0) {
+                // Create filled geometry with minimal curve segments since we pre-smoothed
+                const geometry = new THREE.ShapeGeometry(smoothShapes, 1);
+                geometry.computeVertexNormals();
+                
+                const polygonCount = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
+                console.log(`Filled spline: ${smoothShapes.length} shapes, ${polygonCount} polygons`);
+                
+                return geometry;
+            }
+            
+            throw new Error('No filled spline shapes created');
+        }
+        
+        function createTubeSplineGeometry(charShapes, fontSize, resolution, char) {
+            const curves = [];
+            
+            // Convert each shape to spline curves
+            charShapes.forEach(shape => {
+                // Get the shape's curves (holes and main path)
+                const shapeCurves = shape.getSpacedPoints(Math.max(resolution * 10, 50));
+                
+                // Create a spline curve from the points
+                const curve = new THREE.CatmullRomCurve3(
+                    shapeCurves.map(p => new THREE.Vector3(p.x, p.y, 0))
+                );
+                curve.closed = true; // Close the curve for letters
+                curves.push(curve);
+                
+                // Handle holes in the shape
+                if (shape.holes && shape.holes.length > 0) {
+                    shape.holes.forEach(hole => {
+                        const holePoints = hole.getSpacedPoints(Math.max(resolution * 8, 30));
+                        const holeCurve = new THREE.CatmullRomCurve3(
+                            holePoints.map(p => new THREE.Vector3(p.x, p.y, 0))
+                        );
+                        holeCurve.closed = true;
+                        curves.push(holeCurve);
+                    });
+                }
+            });
+            
+            // Create tube geometry from curves
+            const tubeRadius = Math.max(fontSize * 0.01, 0.5);
+            const tubeSegments = Math.max(resolution * 2, 8);
+            const radialSegments = 8;
+            
+            if (curves.length > 0) {
+                // For multiple curves, create a group geometry
+                const geometries = curves.map(curve => 
+                    new THREE.TubeGeometry(curve, tubeSegments, tubeRadius, radialSegments)
+                );
+                
+                // Merge all tube geometries
+                const mergedGeometry = new THREE.BufferGeometry();
+                const positions = [];
+                const indices = [];
+                let indexOffset = 0;
+                
+                geometries.forEach(geom => {
+                    const pos = geom.attributes.position.array;
+                    const idx = geom.index ? geom.index.array : null;
+                    
+                    positions.push(...pos);
+                    
+                    if (idx) {
+                        for (let i = 0; i < idx.length; i++) {
+                            indices.push(idx[i] + indexOffset);
+                        }
+                        indexOffset += pos.length / 3;
+                    }
+                    
+                    geom.dispose();
+                });
+                
+                mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                if (indices.length > 0) {
+                    mergedGeometry.setIndex(indices);
+                }
+                mergedGeometry.computeVertexNormals();
+                
+                console.log(`Tube spline character "${char}": ${curves.length} curves, ${positions.length/3} vertices`);
+                return mergedGeometry;
+            }
+            
+            throw new Error('No tube spline curves created');
         }
         
         function createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth, extrudeHeight) {
@@ -1792,7 +1861,19 @@ function createSimpleFallbackFont() {
             document.getElementById('fontDepth').addEventListener('input', createTextGeometry);
             document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
             document.getElementById('maxPolygons').addEventListener('input', createTextGeometry);
-            document.getElementById('useSplines').addEventListener('change', createTextGeometry);
+            document.getElementById('useSplines').addEventListener('change', function() {
+                const useSplines = document.getElementById('useSplines').checked;
+                const fillSplinesCheckbox = document.getElementById('fillSplines');
+                
+                // Enable/disable fill option based on spline usage
+                fillSplinesCheckbox.disabled = !useSplines;
+                if (!useSplines) {
+                    fillSplinesCheckbox.checked = false;
+                }
+                
+                createTextGeometry();
+            });
+            document.getElementById('fillSplines').addEventListener('change', createTextGeometry);
             document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
             document.getElementById('textAlign').addEventListener('change', createTextGeometry);
             document.getElementById('textXPosition').addEventListener('input', updateTextPosition);
@@ -1961,6 +2042,8 @@ function createSimpleFallbackFont() {
             document.getElementById('curveSegments').value = 12;
             document.getElementById('maxPolygons').value = 300;
             document.getElementById('useSplines').checked = false;
+            document.getElementById('fillSplines').checked = false;
+            document.getElementById('fillSplines').disabled = true;
             document.getElementById('lineSpacing').value = 0.8;
             document.getElementById('textAlign').value = 'center';
             document.getElementById('textXPosition').value = 0;
