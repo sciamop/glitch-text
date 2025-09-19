@@ -265,8 +265,16 @@
                 <label for="fontSize">Font Size: <span class="slider-value" id="fontSizeValue">100</span></label>
                 <input type="range" id="fontSize" min="20" max="200" value="100">
                 
-                <label for="curveSegments">Resolution: <span class="slider-value" id="curveSegmentsValue">12</span></label>
-                <input type="range" id="curveSegments" min="3" max="100" value="12">
+                <label for="curveSegments">Max Resolution: <span class="slider-value" id="curveSegmentsValue">1</span></label>
+                <input type="range" id="curveSegments" min="1" max="100" value="1">
+                
+                <label for="maxPolygons">Max Polygons (limits resolution): <span class="slider-value" id="maxPolygonsValue">300</span></label>
+                <input type="range" id="maxPolygons" min="10" max="5000" value="300">
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useSplines">
+                    <label for="useSplines">Use Spline Curves (smooth mathematical curves)</label>
+                </div>
                 
                 <label for="lineSpacing">Line Spacing (/n for breaks): <span class="slider-value" id="lineSpacingValue">0.8</span></label>
                 <input type="range" id="lineSpacing" min="-0.5" max="2.0" step="0.1" value="0.8">
@@ -359,10 +367,10 @@
                 </div>
                 
                 <label for="fontDepth">Base Depth: <span class="slider-value" id="fontDepthValue">20</span></label>
-                <input type="range" id="fontDepth" min="5" max="50" value="20">
+                <input type="range" id="fontDepth" min="1" max="50" value="20">
                 
                 <label for="extrudeHeight">Additional Height: <span class="slider-value" id="extrudeHeightValue">50</span></label>
-                <input type="range" id="extrudeHeight" min="10" max="150" value="50">
+                <input type="range" id="extrudeHeight" min="1" max="150" value="10">
                 
             </div>
 
@@ -373,7 +381,7 @@
                     <option value="standard" style="background: #333; color: #fff;">Standard</option>
                     <option value="phong" style="background: #333; color: #fff;">Phong</option>
                     <option value="lambert" style="background: #333; color: #fff;">Lambert</option>
-                    <option value="basic" style="background: #333; color: #fff;">Basic (No Lighting)</option>
+                    <option value="basic" style="background: #333; color: #fff;" selected>Basic (No Lighting)</option>
                     <option value="toon" style="background: #333; color: #fff;">Flat/Cel Shading</option>
                     <option value="wireframe" style="background: #333; color: #fff;">Wireframe</option>
                     <option value="normal" style="background: #333; color: #fff;">Normal Map</option>
@@ -513,7 +521,7 @@
         // Global Three.js variables
         let scene, camera, renderer, controls;
         let textMeshes = []; // Array of individual letter meshes
-        let extrudedMeshes = []; // Array of individual extruded letter meshes
+        // Removed extrudedMeshes array - extrusion now handled in individual letter geometries
         let attractorPoints = [];
         let voronoiPoints = [];
         let attractorSpheres = [];
@@ -671,7 +679,7 @@
 
         function setupLighting() {
             // Ambient light
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.3);
             scene.add(ambientLight);
 
             // Main directional light
@@ -938,7 +946,12 @@ function createSimpleFallbackFont() {
             return allShapes;
         }
 
-        function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth) {
+        function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth, extrudeHeight) {
+            const useSplines = document.getElementById('useSplines').checked;
+            
+            if (useSplines) {
+                return createSplineBasedCharacterGeometry(char, fontSize, resolution);
+            }
             // Identify letters that are problematic with subdivision (straight edges, sharp angles, or simple curves)
             // Include both uppercase and lowercase versions
             const problematicLetters = [
@@ -950,15 +963,10 @@ function createSimpleFallbackFont() {
             ];
             const isStraightLetter = problematicLetters.includes(char);
             
-            // Different approach for straight vs curved letters
-            let targetPolygons;
-            if (isStraightLetter) {
-                // Much more conservative for straight letters - rely on base curve segments
-                targetPolygons = Math.min(Math.floor(resolution * 5), 300);
-            } else {
-                // Normal approach for curved letters
-                targetPolygons = Math.min(Math.floor(resolution * 12), 1200);
-            }
+            // Same target polygon calculation for all letters
+            // Max polygons controlled by slider
+            const maxPolygons = parseInt(document.getElementById('maxPolygons').value);
+            let targetPolygons = Math.min(Math.floor(resolution * 12), maxPolygons);
             
             console.log(`Character "${char}": Target ${targetPolygons} polygons (resolution: ${resolution}, straight: ${isStraightLetter})`);
             
@@ -978,8 +986,10 @@ function createSimpleFallbackFont() {
                     let charGeometry;
                     
                     if (enableExtrude) {
+                        // Combine base depth with additional extrude height
+                        const totalDepth = fontDepth + (extrudeHeight || 0);
                         charGeometry = new THREE.ExtrudeGeometry(charShapes, {
-                            depth: fontDepth,
+                            depth: totalDepth,
                             bevelEnabled: true,
                             bevelThickness: 2,
                             bevelSize: 1,
@@ -996,9 +1006,10 @@ function createSimpleFallbackFont() {
                     
                     let currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
                     
-                    // Subdivide letters with different limits based on complexity
-                    // Straight letters are more prone to black rendering with high polygon counts
-                    const maxPolygons = isStraightLetter ? 600 : 1200;
+                    // Subdivide letters using the max polygons slider value
+                    // Apply conservative limit for straight letters to prevent black rendering
+                    const userMaxPolygons = parseInt(document.getElementById('maxPolygons').value);
+                    const maxPolygons = isStraightLetter ? Math.min(userMaxPolygons, 1000) : userMaxPolygons;
                     
                     while (currentPolygons < targetPolygons && currentPolygons < maxPolygons) {
                         const projectedPolygons = currentPolygons * 4;
@@ -1037,15 +1048,104 @@ function createSimpleFallbackFont() {
             } catch (error) {
                 console.warn(`Failed to create shape for "${char}", using fallback`);
                 // Fallback: create simple box with target polygon count
-                return createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth);
+                return createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth, extrudeHeight);
             }
         }
-
-        function createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth) {
+        
+        function createSplineBasedCharacterGeometry(char, fontSize, resolution) {
+            console.log(`Creating spline geometry for "${char}" with resolution ${resolution}`);
+            
+            try {
+                // Generate base shape from font
+                const charShapes = font.generateShapes(char, fontSize);
+                
+                if (charShapes && charShapes.length > 0) {
+                    const curves = [];
+                    
+                    // Convert each shape to spline curves
+                    charShapes.forEach(shape => {
+                        // Get the shape's curves (holes and main path)
+                        const shapeCurves = shape.getSpacedPoints(Math.max(resolution * 10, 50));
+                        
+                        // Create a spline curve from the points
+                        const curve = new THREE.CatmullRomCurve3(
+                            shapeCurves.map(p => new THREE.Vector3(p.x, p.y, 0))
+                        );
+                        curve.closed = true; // Close the curve for letters
+                        curves.push(curve);
+                        
+                        // Handle holes in the shape
+                        if (shape.holes && shape.holes.length > 0) {
+                            shape.holes.forEach(hole => {
+                                const holePoints = hole.getSpacedPoints(Math.max(resolution * 8, 30));
+                                const holeCurve = new THREE.CatmullRomCurve3(
+                                    holePoints.map(p => new THREE.Vector3(p.x, p.y, 0))
+                                );
+                                holeCurve.closed = true;
+                                curves.push(holeCurve);
+                            });
+                        }
+                    });
+                    
+                    // Create tube geometry from curves
+                    const tubeRadius = Math.max(fontSize * 0.01, 0.5);
+                    const tubeSegments = Math.max(resolution * 2, 8);
+                    const radialSegments = 8;
+                    
+                    if (curves.length > 0) {
+                        // For multiple curves, create a group geometry
+                        const geometries = curves.map(curve => 
+                            new THREE.TubeGeometry(curve, tubeSegments, tubeRadius, radialSegments)
+                        );
+                        
+                        // Merge all tube geometries
+                        const mergedGeometry = new THREE.BufferGeometry();
+                        const positions = [];
+                        const indices = [];
+                        let indexOffset = 0;
+                        
+                        geometries.forEach(geom => {
+                            const pos = geom.attributes.position.array;
+                            const idx = geom.index ? geom.index.array : null;
+                            
+                            positions.push(...pos);
+                            
+                            if (idx) {
+                                for (let i = 0; i < idx.length; i++) {
+                                    indices.push(idx[i] + indexOffset);
+                                }
+                                indexOffset += pos.length / 3;
+                            }
+                            
+                            geom.dispose();
+                        });
+                        
+                        mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                        if (indices.length > 0) {
+                            mergedGeometry.setIndex(indices);
+                        }
+                        mergedGeometry.computeVertexNormals();
+                        
+                        console.log(`Spline character "${char}": ${curves.length} curves, ${positions.length/3} vertices`);
+                        return mergedGeometry;
+                    }
+                }
+                
+                throw new Error('No spline curves generated');
+                
+            } catch (error) {
+                console.warn(`Failed to create spline for "${char}", using fallback`);
+                // Fall back to regular polygon geometry if spline fails
+                return createFallbackCharacterGeometry(char, fontSize, 100, false, 10, 0);
+            }
+        }
+        
+        function createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth, extrudeHeight) {
             // Create simple geometry and subdivide to target polygon count
             let geometry;
             if (enableExtrude) {
-                geometry = new THREE.BoxGeometry(fontSize * 0.6, fontSize, fontDepth);
+                const totalDepth = fontDepth + (extrudeHeight || 0);
+                geometry = new THREE.BoxGeometry(fontSize * 0.6, fontSize, totalDepth);
             } else {
                 geometry = new THREE.PlaneGeometry(fontSize * 0.6, fontSize);
             }
@@ -1215,13 +1315,8 @@ function createSimpleFallbackFont() {
                 mesh.geometry.dispose();
                 mesh.material.dispose();
             });
-            extrudedMeshes.forEach(mesh => {
-                scene.remove(mesh);
-                mesh.geometry.dispose();
-                mesh.material.dispose();
-            });
+            // Removed extruded mesh cleanup - extrusion handled in letter geometries
             textMeshes = [];
-            extrudedMeshes = [];
             originalVerticesPerLetter = [];
 
             // Create individual letter objects for better control
@@ -1233,6 +1328,7 @@ function createSimpleFallbackFont() {
             const text = rawText.replace(/\/n/g, '\n');
             const fontSize = parseInt(document.getElementById('fontSize').value);
             const fontDepth = parseInt(document.getElementById('fontDepth').value);
+            const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
             const baseSegments = parseInt(document.getElementById('curveSegments').value);
             const enableExtrude = document.getElementById('enableExtrude').checked;
             const textXPosition = parseFloat(document.getElementById('textXPosition').value);
@@ -1311,7 +1407,7 @@ function createSimpleFallbackFont() {
                         // Each letter gets the full resolution - no more artificial limiting!
 
                         // Create consistent polygon-based geometry for this character
-                        let charGeometry = createPolygonBasedCharacterGeometry(char, fontSize, baseSegments, enableExtrude, fontDepth);
+                        let charGeometry = createPolygonBasedCharacterGeometry(char, fontSize, baseSegments, enableExtrude, fontDepth, extrudeHeight);
 
                         if (charGeometry) {
                             // Position the character at the correct X offset
@@ -1477,34 +1573,7 @@ function createSimpleFallbackFont() {
             return color;
         }
 
-        function createExtrudedMesh() {
-            if (textMeshes.length === 0) return;
-
-            const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
-
-            // Clone the original geometry
-            const extrudeGeometry = textMesh.geometry.clone();
-            
-
-            // Create extruded mesh
-            const extrudeMaterial = createMaterial();
-            extrudeMaterial.transparent = true;
-            extrudeMaterial.opacity = 0.8;
-
-            extrudedMesh = new THREE.Mesh(extrudeGeometry, extrudeMaterial);
-            
-            // Apply X, Y and Z position (relative to main text)
-            const textXPosition = parseFloat(document.getElementById('textXPosition').value);
-            const textYPosition = parseFloat(document.getElementById('textYPosition').value);
-            const textZPosition = parseFloat(document.getElementById('textZPosition').value);
-            extrudedMesh.position.x = textXPosition;
-            extrudedMesh.position.y = textYPosition;
-            extrudedMesh.position.z = textZPosition - extrudeHeight / 2;
-            
-            extrudedMesh.castShadow = true;
-            extrudedMesh.receiveShadow = true;
-            scene.add(extrudedMesh);
-        }
+        // Removed broken createExtrudedMesh() function - using proper ExtrudeGeometry instead
 
 
         function generateRandomPoints() {
@@ -1713,17 +1782,7 @@ function createSimpleFallbackFont() {
                 geometry.computeVertexNormals();
             });
 
-            // Update extruded meshes if they exist
-            if (extrudedMeshes.length > 0 && document.getElementById('enableExtrude').checked) {
-                // Recreate extruded meshes with new base geometry
-                extrudedMeshes.forEach(mesh => {
-                    scene.remove(mesh);
-                    mesh.geometry.dispose();
-                    mesh.material.dispose();
-                });
-                extrudedMeshes = [];
-                createExtrudedMeshes();
-            }
+            // Extrusion is now handled properly within individual letter geometries
         }
 
         function setupEventListeners() {
@@ -1732,6 +1791,8 @@ function createSimpleFallbackFont() {
             document.getElementById('fontSize').addEventListener('input', createTextGeometry);
             document.getElementById('fontDepth').addEventListener('input', createTextGeometry);
             document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
+            document.getElementById('maxPolygons').addEventListener('input', createTextGeometry);
+            document.getElementById('useSplines').addEventListener('change', createTextGeometry);
             document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
             document.getElementById('textAlign').addEventListener('change', createTextGeometry);
             document.getElementById('textXPosition').addEventListener('input', updateTextPosition);
@@ -1745,11 +1806,11 @@ function createSimpleFallbackFont() {
             document.getElementById('backgroundColor').addEventListener('change', updateBackgroundColor);
 
             // 3D extrusion controls
-            document.getElementById('extrudeHeight').addEventListener('input', updateExtrusion);
-            document.getElementById('enableExtrude').addEventListener('change', updateExtrusion);
+            document.getElementById('extrudeHeight').addEventListener('input', createTextGeometry);
+            document.getElementById('enableExtrude').addEventListener('change', createTextGeometry);
 
             // All sliders update display values
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'maxPolygons', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
                             'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
@@ -1809,16 +1870,7 @@ function createSimpleFallbackFont() {
                 });
                 console.log('Updated materials for', textMeshes.length, 'letter meshes');
             }
-            if (extrudedMeshes.length > 0) {
-                console.log('Updating extrudedMeshes materials');
-                extrudedMeshes.forEach(mesh => {
-                    mesh.material.dispose();
-                    const newMaterial = createMaterial();
-                    mesh.material = newMaterial;
-                    mesh.material.transparent = true;
-                    mesh.material.opacity = 0.8;
-                });
-            }
+            // Extrusion materials are now handled in the main letter geometries
         }
 
         function updateTextPosition() {
@@ -1834,30 +1886,10 @@ function createSimpleFallbackFont() {
             });
             
             // Update all extruded mesh positions
-            if (extrudedMeshes.length > 0) {
-                const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
-                extrudedMeshes.forEach(mesh => {
-                    mesh.position.x = textXPosition;
-                    mesh.position.y = textYPosition;
-                    mesh.position.z = textZPosition - extrudeHeight / 2;
-                });
-            }
+            // Extrusion positioning is now handled in the main letter geometries
         }
 
-        function updateExtrusion() {
-            // Always clean up existing extruded mesh first
-            if (extrudedMesh) {
-                scene.remove(extrudedMesh);
-                extrudedMesh.geometry.dispose();
-                extrudedMesh.material.dispose();
-                extrudedMesh = null;
-            }
-            
-            // Create new extruded mesh if enabled
-            if (document.getElementById('enableExtrude').checked) {
-                createExtrudedMesh();
-            }
-        }
+        // Removed broken updateExtrusion() function - extrusion now handled properly in ExtrudeGeometry
 
         function updateStats() {
             if (textMeshes.length > 0) {
@@ -1927,6 +1959,8 @@ function createSimpleFallbackFont() {
             document.getElementById('fontSize').value = 100;
             document.getElementById('fontDepth').value = 20;
             document.getElementById('curveSegments').value = 12;
+            document.getElementById('maxPolygons').value = 300;
+            document.getElementById('useSplines').checked = false;
             document.getElementById('lineSpacing').value = 0.8;
             document.getElementById('textAlign').value = 'center';
             document.getElementById('textXPosition').value = 0;
@@ -1953,7 +1987,7 @@ function createSimpleFallbackFont() {
             document.getElementById('enableGlow').checked = true;
             
             // Reset dropdowns to default states
-            document.getElementById('materialType').value = 'standard';
+            document.getElementById('materialType').value = 'basic';
             document.getElementById('colorMode').value = 'rainbow';
             document.getElementById('backgroundColor').value = 'dark';
 
@@ -1970,7 +2004,7 @@ function createSimpleFallbackFont() {
         }
 
         function updateSliderDisplays() {
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'maxPolygons', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
                             'extrudeHeight', 'chaosFactor', 'animationSpeed'];
 
@@ -2491,6 +2525,7 @@ function createSimpleFallbackFont() {
                 fontSize: document.getElementById('fontSize').value,
                 fontDepth: document.getElementById('fontDepth').value,
                 curveSegments: document.getElementById('curveSegments').value,
+                maxPolygons: document.getElementById('maxPolygons').value,
                 lineSpacing: document.getElementById('lineSpacing').value,
                 textAlign: document.getElementById('textAlign').value,
                 textXPosition: document.getElementById('textXPosition').value,
