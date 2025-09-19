@@ -289,6 +289,20 @@
             </div>
 
             <div class="control-group">
+                <h3>🎛️ Master Controls</h3>
+                <label for="chaosFactor">🔥 CHAOS FACTOR: <span class="slider-value" id="chaosFactorValue">50</span></label>
+                <input type="range" id="chaosFactor" min="0" max="100" value="50">
+                
+                <label for="animationSpeed">Animation Speed: <span class="slider-value" id="animationSpeedValue">1</span></label>
+                <input type="range" id="animationSpeed" min="0" max="3" step="0.1" value="1">
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableAnimation" checked>
+                    <label for="enableAnimation">Animation</label>
+                </div>
+            </div>
+
+            <div class="control-group">
                 <h3>🌊 Noise Warping</h3>
                 <label for="noiseScale">Noise Scale: <span class="slider-value" id="noiseScaleValue">0.05</span></label>
                 <input type="range" id="noiseScale" min="0.01" max="2.0" step="0.01" value="0.05">
@@ -353,26 +367,13 @@
             </div>
 
             <div class="control-group">
-                <h3>🎛️ Master Controls</h3>
-                <label for="chaosFactor">🔥 CHAOS FACTOR: <span class="slider-value" id="chaosFactorValue">50</span></label>
-                <input type="range" id="chaosFactor" min="0" max="100" value="50">
-                
-                <label for="animationSpeed">Animation Speed: <span class="slider-value" id="animationSpeedValue">1</span></label>
-                <input type="range" id="animationSpeed" min="0" max="3" step="0.1" value="1">
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="enableAnimation" checked>
-                    <label for="enableAnimation">Animation</label>
-                </div>
-            </div>
-
-            <div class="control-group">
                 <h3>🎨 Material & Lighting</h3>
                 <label for="materialType">Material:</label>
                 <select id="materialType" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; margin-bottom: 10px;">
                     <option value="standard" style="background: #333; color: #fff;">Standard</option>
                     <option value="phong" style="background: #333; color: #fff;">Phong</option>
                     <option value="lambert" style="background: #333; color: #fff;">Lambert</option>
+                    <option value="basic" style="background: #333; color: #fff;">Basic (No Lighting)</option>
                     <option value="toon" style="background: #333; color: #fff;">Flat/Cel Shading</option>
                     <option value="wireframe" style="background: #333; color: #fff;">Wireframe</option>
                     <option value="normal" style="background: #333; color: #fff;">Normal Map</option>
@@ -944,7 +945,8 @@ function createSimpleFallbackFont() {
                 'T', 'E', 'F', 'H', 'I', 'L', 'N', 'Z', 'M', 'A', 'V', 'W', 'X', 'Y', 'K', 'D', 'P', 'U', 'B', 'R',
                 't', 'e', 'f', 'h', 'i', 'l', 'n', 'z', 'm', 'a', 'v', 'w', 'x', 'y', 'k', 'd', 'p', 'u', 'b', 'r',
                 'j', 'J', // Lowercase j has simple curves that break with subdivision
-                '1', '7', '4', '0'
+                '1', '7', '4', '0',
+                '.', ',', '!', '?', ':', ';', '-', '_', '|' // Simple punctuation marks
             ];
             const isStraightLetter = problematicLetters.includes(char);
             
@@ -965,10 +967,10 @@ function createSimpleFallbackFont() {
                 const charShapes = font.generateShapes(char, fontSize);
                 
                 if (charShapes && charShapes.length > 0) {
-                    // For straight letters, use much higher base curve segments instead of subdivision
+                    // Use moderate base curve segments since all letters now get subdivision
                     let baseCurveSegments;
                     if (isStraightLetter) {
-                        baseCurveSegments = Math.min(Math.max(12, Math.floor(resolution / 2)), 64); // Higher base quality
+                        baseCurveSegments = Math.min(Math.max(8, Math.floor(resolution / 4)), 32); // Moderate base, rely on subdivision
                     } else {
                         baseCurveSegments = Math.min(Math.max(8, Math.floor(resolution / 4)), 24); // Normal base quality
                     }
@@ -994,26 +996,35 @@ function createSimpleFallbackFont() {
                     
                     let currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
                     
-                    // Only subdivide curved letters - straight letters get quality from base curve segments
-                    if (!isStraightLetter) {
-                        // Conservative subdivision for curved letters only
-                        while (currentPolygons < targetPolygons && currentPolygons < 1200) {
-                            const projectedPolygons = currentPolygons * 4;
+                    // Subdivide letters with different limits based on complexity
+                    // Straight letters are more prone to black rendering with high polygon counts
+                    const maxPolygons = isStraightLetter ? 600 : 1200;
+                    
+                    while (currentPolygons < targetPolygons && currentPolygons < maxPolygons) {
+                        const projectedPolygons = currentPolygons * 4;
+                        
+                        if (projectedPolygons <= targetPolygons * 1.1 && projectedPolygons < maxPolygons) {
+                            addGeometrySubdivision(charGeometry, 1);
                             
-                            if (projectedPolygons <= targetPolygons * 1.1 && projectedPolygons < 1200) {
-                                addGeometrySubdivision(charGeometry, 1);
-                                
-                                // Recompute normals after subdivision to prevent black rendering
-                                charGeometry.computeVertexNormals();
-                                
-                                currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
-                                console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons`);
-                            } else {
-                                break;
+                            // Recompute normals after subdivision to prevent black rendering
+                            charGeometry.computeVertexNormals();
+                            
+                            // Additional normal computation for straight letters (more prone to issues)
+                            if (isStraightLetter) {
+                                charGeometry.normalizeNormals();
                             }
+                            
+                            currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
+                            console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons (max: ${maxPolygons})`);
+                        } else {
+                            break;
                         }
-                    } else {
-                        console.log(`Character "${char}": Skipping subdivision (straight letter), using base quality`);
+                    }
+                    
+                    // Final safety check - ensure normals are properly computed
+                    charGeometry.computeVertexNormals();
+                    if (isStraightLetter) {
+                        charGeometry.normalizeNormals();
                     }
                     
                     console.log(`Character "${char}": Final ${currentPolygons} polygons (target: ${targetPolygons})`);
@@ -1403,6 +1414,12 @@ function createSimpleFallbackFont() {
                         side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
                     });
                     break;
+                case 'basic':
+                    material = new THREE.MeshBasicMaterial({
+                        color: color,
+                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                    });
+                    break;
                 case 'toon':
                     material = new THREE.MeshToonMaterial({
                         color: color,
@@ -1431,7 +1448,7 @@ function createSimpleFallbackFont() {
                     });
             }
 
-            if (enableGlow && materialType !== 'wireframe') {
+            if (enableGlow && materialType !== 'wireframe' && materialType !== 'basic') {
                 // For black color mode, use a subtle white glow instead of black glow
                 if (colorMode === 'black') {
                     material.emissive = new THREE.Color(0x222222); // Dark gray glow for black text
