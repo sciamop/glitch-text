@@ -268,17 +268,9 @@
                 <label for="curveSegments">Max Resolution: <span class="slider-value" id="curveSegmentsValue">1</span></label>
                 <input type="range" id="curveSegments" min="1" max="100" value="1">
                 
-                <label for="maxPolygons">Max Polygons (limits resolution): <span class="slider-value" id="maxPolygonsValue">300</span></label>
-                <input type="range" id="maxPolygons" min="10" max="5000" value="300">
-                
                 <div class="checkbox-group">
-                    <input type="checkbox" id="useSplines">
-                    <label for="useSplines">Use Spline Curves (smooth mathematical curves)</label>
-                </div>
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="fillSplines" disabled>
-                    <label for="fillSplines">Fill Spline Curves (solid shapes)</label>
+                    <input type="checkbox" id="fillSplines" checked>
+                    <label for="fillSplines">Fill Curves (solid shapes vs outline tubes)</label>
                 </div>
                 
                 <label for="lineSpacing">Line Spacing (/n for breaks): <span class="slider-value" id="lineSpacingValue">0.8</span></label>
@@ -364,20 +356,6 @@
                 <input type="range" id="variationFactor" min="0" max="2" step="0.1" value="0.4">
             </div>
 
-            <div class="control-group">
-                <h3>🌀 3D Extrusion</h3>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="enableExtrude">
-                    <label for="enableExtrude">Enable 3D Extrusion</label>
-                </div>
-                
-                <label for="fontDepth">Base Depth: <span class="slider-value" id="fontDepthValue">20</span></label>
-                <input type="range" id="fontDepth" min="1" max="50" value="20">
-                
-                <label for="extrudeHeight">Additional Height: <span class="slider-value" id="extrudeHeightValue">50</span></label>
-                <input type="range" id="extrudeHeight" min="1" max="150" value="10">
-                
-            </div>
 
             <div class="control-group">
                 <h3>🎨 Material & Lighting</h3>
@@ -951,112 +929,6 @@ function createSimpleFallbackFont() {
             return allShapes;
         }
 
-        function createPolygonBasedCharacterGeometry(char, fontSize, resolution, enableExtrude, fontDepth, extrudeHeight) {
-            const useSplines = document.getElementById('useSplines').checked;
-            
-            if (useSplines) {
-                return createSplineBasedCharacterGeometry(char, fontSize, resolution);
-            }
-            // Identify letters that are problematic with subdivision (straight edges, sharp angles, or simple curves)
-            // Include both uppercase and lowercase versions
-            const problematicLetters = [
-                'T', 'E', 'F', 'H', 'I', 'L', 'N', 'Z', 'M', 'A', 'V', 'W', 'X', 'Y', 'K', 'D', 'P', 'U', 'B', 'R',
-                't', 'e', 'f', 'h', 'i', 'l', 'n', 'z', 'm', 'a', 'v', 'w', 'x', 'y', 'k', 'd', 'p', 'u', 'b', 'r',
-                'j', 'J', // Lowercase j has simple curves that break with subdivision
-                '1', '7', '4', '0',
-                '.', ',', '!', '?', ':', ';', '-', '_', '|' // Simple punctuation marks
-            ];
-            const isStraightLetter = problematicLetters.includes(char);
-            
-            // Same target polygon calculation for all letters
-            // Max polygons controlled by slider
-            const maxPolygons = parseInt(document.getElementById('maxPolygons').value);
-            let targetPolygons = Math.min(Math.floor(resolution * 12), maxPolygons);
-            
-            console.log(`Character "${char}": Target ${targetPolygons} polygons (resolution: ${resolution}, straight: ${isStraightLetter})`);
-            
-            try {
-                // Generate base shape from font
-                const charShapes = font.generateShapes(char, fontSize);
-                
-                if (charShapes && charShapes.length > 0) {
-                    // Use moderate base curve segments since all letters now get subdivision
-                    let baseCurveSegments;
-                    if (isStraightLetter) {
-                        baseCurveSegments = Math.min(Math.max(8, Math.floor(resolution / 4)), 32); // Moderate base, rely on subdivision
-                    } else {
-                        baseCurveSegments = Math.min(Math.max(8, Math.floor(resolution / 4)), 24); // Normal base quality
-                    }
-                    
-                    let charGeometry;
-                    
-                    if (enableExtrude) {
-                        // Combine base depth with additional extrude height
-                        const totalDepth = fontDepth + (extrudeHeight || 0);
-                        charGeometry = new THREE.ExtrudeGeometry(charShapes, {
-                            depth: totalDepth,
-                            bevelEnabled: true,
-                            bevelThickness: 2,
-                            bevelSize: 1,
-                            bevelOffset: 0,
-                            bevelSegments: 2,
-                            curveSegments: baseCurveSegments
-                        });
-                    } else {
-                        charGeometry = new THREE.ShapeGeometry(charShapes, baseCurveSegments);
-                    }
-                    
-                    // Compute normals to fix potential rendering issues
-                    charGeometry.computeVertexNormals();
-                    
-                    let currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
-                    
-                    // Subdivide letters using the max polygons slider value
-                    // Apply conservative limit for straight letters to prevent black rendering
-                    const userMaxPolygons = parseInt(document.getElementById('maxPolygons').value);
-                    const maxPolygons = isStraightLetter ? Math.min(userMaxPolygons, 1000) : userMaxPolygons;
-                    
-                    while (currentPolygons < targetPolygons && currentPolygons < maxPolygons) {
-                        const projectedPolygons = currentPolygons * 4;
-                        
-                        if (projectedPolygons <= targetPolygons * 1.1 && projectedPolygons < maxPolygons) {
-                            addGeometrySubdivision(charGeometry, 1);
-                            
-                            // Recompute normals after subdivision to prevent black rendering
-                            charGeometry.computeVertexNormals();
-                            
-                            // Additional normal computation for straight letters (more prone to issues)
-                            if (isStraightLetter) {
-                                charGeometry.normalizeNormals();
-                            }
-                            
-                            currentPolygons = charGeometry.index ? charGeometry.index.count / 3 : charGeometry.attributes.position.count / 3;
-                            console.log(`Character "${char}": Subdivided to ${currentPolygons} polygons (max: ${maxPolygons})`);
-                        } else {
-                            break;
-                        }
-                    }
-                    
-                    // Final safety check - ensure normals are properly computed
-                    charGeometry.computeVertexNormals();
-                    if (isStraightLetter) {
-                        charGeometry.normalizeNormals();
-                    }
-                    
-                    console.log(`Character "${char}": Final ${currentPolygons} polygons (target: ${targetPolygons})`);
-                    return charGeometry;
-                    
-                } else {
-                    throw new Error('No shapes generated for character');
-                }
-                
-            } catch (error) {
-                console.warn(`Failed to create shape for "${char}", using fallback`);
-                // Fallback: create simple box with target polygon count
-                return createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth, extrudeHeight);
-            }
-        }
-        
         function createSplineBasedCharacterGeometry(char, fontSize, resolution) {
             console.log(`Creating spline geometry for "${char}" with resolution ${resolution}`);
             const fillSplines = document.getElementById('fillSplines').checked;
@@ -1070,7 +942,7 @@ function createSimpleFallbackFont() {
                         // Create filled spline shapes
                         return createFilledSplineGeometry(charShapes, fontSize, resolution);
                     } else {
-                        // Create tube spline curves (original behavior)
+                        // Create tube spline curves
                         return createTubeSplineGeometry(charShapes, fontSize, resolution, char);
                     }
                 }
@@ -1079,10 +951,16 @@ function createSimpleFallbackFont() {
                 
             } catch (error) {
                 console.warn(`Failed to create spline for "${char}", using fallback`);
-                // Fall back to regular polygon geometry if spline fails
-                return createFallbackCharacterGeometry(char, fontSize, 100, false, 10, 0);
+                // Fall back to simple geometry if spline fails
+                return createFallbackCharacterGeometry(char, fontSize, 100);
             }
         }
+        
+        function createCharacterGeometry(char, fontSize, resolution) {
+            // Always use spline-based rendering now
+            return createSplineBasedCharacterGeometry(char, fontSize, resolution);
+        }
+        
         
         function createFilledSplineGeometry(charShapes, fontSize, resolution) {
             // Create smooth filled shapes using higher resolution curves
@@ -1209,15 +1087,9 @@ function createSimpleFallbackFont() {
             throw new Error('No tube spline curves created');
         }
         
-        function createFallbackCharacterGeometry(char, fontSize, targetPolygons, enableExtrude, fontDepth, extrudeHeight) {
-            // Create simple geometry and subdivide to target polygon count
-            let geometry;
-            if (enableExtrude) {
-                const totalDepth = fontDepth + (extrudeHeight || 0);
-                geometry = new THREE.BoxGeometry(fontSize * 0.6, fontSize, totalDepth);
-            } else {
-                geometry = new THREE.PlaneGeometry(fontSize * 0.6, fontSize);
-            }
+        function createFallbackCharacterGeometry(char, fontSize, targetPolygons) {
+            // Create simple 2D geometry as fallback
+            let geometry = new THREE.PlaneGeometry(fontSize * 0.6, fontSize);
             
             // Subdivide to reach target
             let currentPolygons = geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3;
@@ -1396,10 +1268,7 @@ function createSimpleFallbackFont() {
             const rawText = document.getElementById('textInput').value || 'CHAOS';
             const text = rawText.replace(/\/n/g, '\n');
             const fontSize = parseInt(document.getElementById('fontSize').value);
-            const fontDepth = parseInt(document.getElementById('fontDepth').value);
-            const extrudeHeight = parseInt(document.getElementById('extrudeHeight').value);
             const baseSegments = parseInt(document.getElementById('curveSegments').value);
-            const enableExtrude = document.getElementById('enableExtrude').checked;
             const textXPosition = parseFloat(document.getElementById('textXPosition').value);
             const textYPosition = parseFloat(document.getElementById('textYPosition').value);
             const textZPosition = parseFloat(document.getElementById('textZPosition').value);
@@ -1476,7 +1345,7 @@ function createSimpleFallbackFont() {
                         // Each letter gets the full resolution - no more artificial limiting!
 
                         // Create consistent polygon-based geometry for this character
-                        let charGeometry = createPolygonBasedCharacterGeometry(char, fontSize, baseSegments, enableExtrude, fontDepth, extrudeHeight);
+                        let charGeometry = createCharacterGeometry(char, fontSize, baseSegments);
 
                         if (charGeometry) {
                             // Position the character at the correct X offset
@@ -1529,15 +1398,8 @@ function createSimpleFallbackFont() {
             // Simple fallback when individual letter creation fails
             const text = document.getElementById('textInput').value || 'CHAOS';
             const fontSize = parseInt(document.getElementById('fontSize').value);
-            const enableExtrude = document.getElementById('enableExtrude').checked;
-            const fontDepth = parseInt(document.getElementById('fontDepth').value);
             
-            let fallbackGeometry;
-            if (enableExtrude) {
-                fallbackGeometry = new THREE.BoxGeometry(fontSize * text.length * 0.6, fontSize, fontDepth);
-            } else {
-                fallbackGeometry = new THREE.PlaneGeometry(fontSize * text.length * 0.6, fontSize);
-            }
+            let fallbackGeometry = new THREE.PlaneGeometry(fontSize * text.length * 0.6, fontSize);
 
             const material = createMaterial();
             const fallbackMesh = new THREE.Mesh(fallbackGeometry, material);
@@ -1559,8 +1421,6 @@ function createSimpleFallbackFont() {
             const materialType = document.getElementById('materialType').value;
             const colorMode = document.getElementById('colorMode').value;
             const enableGlow = document.getElementById('enableGlow').checked;
-            const enableExtrude = document.getElementById('enableExtrude').checked;
-
             let color = getColorFromMode(colorMode);
             let material;
 
@@ -1570,25 +1430,25 @@ function createSimpleFallbackFont() {
                         color: color,
                         shininess: 100,
                         specular: 0x4ecdc4,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 case 'lambert':
                     material = new THREE.MeshLambertMaterial({ 
                         color: color,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 case 'basic':
                     material = new THREE.MeshBasicMaterial({
                         color: color,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 case 'toon':
                     material = new THREE.MeshToonMaterial({
                         color: color,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 case 'wireframe':
@@ -1596,12 +1456,12 @@ function createSimpleFallbackFont() {
                         color: color,
                         wireframe: true,
                         wireframeLinewidth: 2,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 case 'normal':
                     material = new THREE.MeshNormalMaterial({
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
                     break;
                 default:
@@ -1609,7 +1469,7 @@ function createSimpleFallbackFont() {
                         color: color,
                         metalness: 0.3,
                         roughness: 0.4,
-                        side: enableExtrude ? THREE.FrontSide : THREE.DoubleSide
+                        side: THREE.DoubleSide
                     });
             }
 
@@ -1829,12 +1689,10 @@ function createSimpleFallbackFont() {
                     // Apply thickness variation mainly to Z coordinate and some to X,Y for organic feel
                     const thicknessDelta = (thicknessMultiplier - 1) * 10;
                     
-                    // For 2D curves, vary the position slightly to simulate thickness
-                    if (!document.getElementById('enableExtrude').checked) {
-                        // For 2D mode, create subtle position variations
-                        x += Math.sin(y * 0.1 + time) * thicknessDelta * 0.3;
-                        y += Math.cos(x * 0.1 + time) * thicknessDelta * 0.3;
-                    }
+                    // For spline curves, vary the position slightly to simulate thickness
+                    // Create subtle position variations
+                    x += Math.sin(y * 0.1 + time) * thicknessDelta * 0.3;
+                    y += Math.cos(x * 0.1 + time) * thicknessDelta * 0.3;
                     
                     // Always apply some Z variation for depth
                     z += thicknessDelta * chaosFactor;
@@ -1858,21 +1716,7 @@ function createSimpleFallbackFont() {
             // Text and geometry changes
             document.getElementById('textInput').addEventListener('input', createTextGeometry);
             document.getElementById('fontSize').addEventListener('input', createTextGeometry);
-            document.getElementById('fontDepth').addEventListener('input', createTextGeometry);
             document.getElementById('curveSegments').addEventListener('input', createTextGeometry);
-            document.getElementById('maxPolygons').addEventListener('input', createTextGeometry);
-            document.getElementById('useSplines').addEventListener('change', function() {
-                const useSplines = document.getElementById('useSplines').checked;
-                const fillSplinesCheckbox = document.getElementById('fillSplines');
-                
-                // Enable/disable fill option based on spline usage
-                fillSplinesCheckbox.disabled = !useSplines;
-                if (!useSplines) {
-                    fillSplinesCheckbox.checked = false;
-                }
-                
-                createTextGeometry();
-            });
             document.getElementById('fillSplines').addEventListener('change', createTextGeometry);
             document.getElementById('lineSpacing').addEventListener('input', createTextGeometry);
             document.getElementById('textAlign').addEventListener('change', createTextGeometry);
@@ -1886,14 +1730,11 @@ function createSimpleFallbackFont() {
             document.getElementById('enableGlow').addEventListener('change', updateMaterial);
             document.getElementById('backgroundColor').addEventListener('change', updateBackgroundColor);
 
-            // 3D extrusion controls
-            document.getElementById('extrudeHeight').addEventListener('input', createTextGeometry);
-            document.getElementById('enableExtrude').addEventListener('change', createTextGeometry);
 
             // All sliders update display values
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'maxPolygons', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'extrudeHeight', 'chaosFactor', 'animationSpeed'];
+                            'chaosFactor', 'animationSpeed'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
@@ -2038,12 +1879,8 @@ function createSimpleFallbackFont() {
             // Reset all controls to default values
             document.getElementById('textInput').value = 'CHAOS';
             document.getElementById('fontSize').value = 100;
-            document.getElementById('fontDepth').value = 20;
-            document.getElementById('curveSegments').value = 12;
-            document.getElementById('maxPolygons').value = 300;
-            document.getElementById('useSplines').checked = false;
-            document.getElementById('fillSplines').checked = false;
-            document.getElementById('fillSplines').disabled = true;
+            document.getElementById('curveSegments').value = 1;
+            document.getElementById('fillSplines').checked = true;
             document.getElementById('lineSpacing').value = 0.8;
             document.getElementById('textAlign').value = 'center';
             document.getElementById('textXPosition').value = 0;
@@ -2058,12 +1895,10 @@ function createSimpleFallbackFont() {
             document.getElementById('clipStrength').value = 12;
             document.getElementById('baseThickness').value = 1.2;
             document.getElementById('variationFactor').value = 0.4;
-            document.getElementById('extrudeHeight').value = 50;
             document.getElementById('chaosFactor').value = 50;
             document.getElementById('animationSpeed').value = 1;
             
             // Reset checkboxes to default states
-            document.getElementById('enableExtrude').checked = false;
             document.getElementById('enableAnimation').checked = true;
             document.getElementById('showAttractors').checked = true;
             document.getElementById('showVoronoi').checked = false;
@@ -2087,9 +1922,9 @@ function createSimpleFallbackFont() {
         }
 
         function updateSliderDisplays() {
-            const sliders = ['fontSize', 'fontDepth', 'curveSegments', 'maxPolygons', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
+            const sliders = ['fontSize', 'curveSegments', 'lineSpacing', 'textXPosition', 'textYPosition', 'textZPosition', 'noiseScale', 'noiseStrength', 'attractorCount', 'attractorStrength', 
                             'falloffRadius', 'voronoiCount', 'clipStrength', 'baseThickness', 'variationFactor', 
-                            'extrudeHeight', 'chaosFactor', 'animationSpeed'];
+                            'chaosFactor', 'animationSpeed'];
 
             sliders.forEach(id => {
                 const slider = document.getElementById(id);
@@ -2606,9 +2441,7 @@ function createSimpleFallbackFont() {
             const preset = {
                 textInput: document.getElementById('textInput').value,
                 fontSize: document.getElementById('fontSize').value,
-                fontDepth: document.getElementById('fontDepth').value,
                 curveSegments: document.getElementById('curveSegments').value,
-                maxPolygons: document.getElementById('maxPolygons').value,
                 lineSpacing: document.getElementById('lineSpacing').value,
                 textAlign: document.getElementById('textAlign').value,
                 textXPosition: document.getElementById('textXPosition').value,
@@ -2621,7 +2454,6 @@ function createSimpleFallbackFont() {
                 clipStrength: document.getElementById('clipStrength').value,
                 baseThickness: document.getElementById('baseThickness').value,
                 variationFactor: document.getElementById('variationFactor').value,
-                extrudeHeight: document.getElementById('extrudeHeight').value,
                 chaosFactor: document.getElementById('chaosFactor').value,
                 animationSpeed: document.getElementById('animationSpeed').value,
                 materialType: document.getElementById('materialType').value,
@@ -2680,3 +2512,4 @@ function createSimpleFallbackFont() {
     </script>
 </body>
 </html>
+
